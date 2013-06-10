@@ -1,0 +1,8 @@
+Version 0.0.91 (alpha)
+2013-06-10
+Initial release: REFACTORING.
+                 ADDED: threads, cache, abbreviation wrapper.
+
+Version 0.0.00
+2013-05-20
+Project Start: QUICKSEARCH obsoletes CL-SEEK-PROJECT
