@@ -38,14 +38,16 @@ Installation
 Examples
 --------
 
+##### Null Result:
 ```common-lisp
 CL-REPL> (qs:? "supercalifragilisticexpialidocious") ;<=> (qs:quicksearch "supercalifragilisticexpialidocious")
 NIL
 ```
 
  * If search-results is null, then just return NIL.
+ 
 
-
+##### Simple search:
 ```common-lisp
 CL-REPL> (qs:? "crypt") ;<=> (qs:quicksearch "crypt")
 
@@ -73,6 +75,7 @@ T
  * Since bitbucket-result is null, it is not printed.
 
 
+##### Description:
 ```common-lisp
 CL-REPL> (qs:? 'Crypt :d) ;<=> (qs:quicksearch 'Crypt :?description t)
 
@@ -116,10 +119,11 @@ T
  * The function ?'s options are not explanatory, but minimum.
 
 
+##### URL, Space, Cutoff:
 ```common-lisp
 CL-REPL> (qs:? "crypt" :dug 4) ;<=> (qs:quicksearch "crypt"
                                ;                    :?description t :?url t :?cut-off 4
-                               :                    :?quicklisp nil :?cliki nil :?bitbucket nil)
+                               ;                    :?quicklisp nil :?cliki nil :?bitbucket nil)
 
 SEARCH-RESULTS: "crypt"
 =======================
@@ -151,6 +155,7 @@ T
    (e.g. `:dug 4` <=> `4 :gud` <=> `:du 4 :g` <=> ...).
 
 
+##### Config:
 ```common-lisp
 CL-REPL> (qs:? 'lisp-koans :du 1) ;<=> (qs:quicksearch 'lisp-koans
                                   ;                    :?description t :?url t :?cut-off 1)
