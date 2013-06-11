@@ -10,8 +10,8 @@ Quicksearch is a search-engine-interface for Common Lisp.
 The goal of Quicksearch is to find the CL library quickly.
 For example, if you will find the library about json, just type `(qs:? "json")` at REPL.
 
-The function QUICKSEARCH searches for CL projects in Quicklisp, Cliki, 
-Github and BitBucket, then outputs results in REPL.
+The function QUICKSEARCH searches for CL projects in Quicklisp, Cliki,
+GitHub and BitBucket, then outputs results in REPL.
 The wrapper function ? is abbreviation for QUICKSEARCH.
 
 
@@ -47,7 +47,7 @@ NIL
  * If it raises a threading error, probably your CL system might be not support threads.
    In this case, please type `(qs:config :threading-p nil)` at REPL, then try it again.
  * If search-results is null, then just return NIL.
- 
+
 
 ##### Simple search:
 ```lisp
@@ -174,7 +174,7 @@ SEARCH-RESULTS: "lisp-koans"
       with some modifications to highlight lisp-specific features.  Structured
       as ordered groups of broken unit tests, the project guides the learner
       progressively through many Common Lisp language features.
-  .......> 2
+  .......> 4
 T
 
 CL-REPL> (qs:config :maximum-columns-of-description 50)
@@ -194,12 +194,12 @@ SEARCH-RESULTS: "lisp-koans"
       exercise in the same vein as the ruby koans,
       python koans and others.   It is a port of
       the prior koans with some modifications to
-      highlight lisp-specific features. 
+      highlight lisp-specific features.
       Structured as ordered groups of broken unit
       tests, the project guides the learner
       progressively through many Common Lisp
       language features.
-  .......> 2
+  .......> 4
 T
 ```
 
@@ -212,13 +212,13 @@ Referece Manual
 
 #### [function] QUICKSEARCH _search-word_ _&key_ _?web_ _?description_ _?url_ _?cut-off_ _?quicklisp_ _?cliki_ _?github_ _?bitbucket_
 
-QUICKSEARCH searches for CL projects with _search-word_ in Quicklisp, Cliki, Github and BitBucket.
+QUICKSEARCH searches for CL projects with _search-word_ in Quicklisp, Cliki, GitHub and BitBucket.
 _search-word_ must be a string, number or symbol (symbol will be automatically converted into downcase-string).
 
 
 ##### Keywords:
 
- * If _?web_ is NIL, it does not search in Cliki, Github and BitBucket.
+ * If _?web_ is NIL, it does not search in Cliki, GitHub and BitBucket.
  * If _?quicklisp_ is NIL, it does not search in Quicklisp (also _?cliki_, _?github_, _?bitbucket_).
  * At least one search-space must be specified.
  * If _?description_ is T, it displays project's descriptions (except for Quicklisp-search).
@@ -233,9 +233,9 @@ _search-word_ must be a string, number or symbol (symbol will be automatically c
    c.f. function CONFIG documentation
 
  * About #\Space in _search-word_:
- 
+
    In case _search-word_ contains #\Space, Quicklisp-search is OR-search,
-   whereas Cliki-search, Github-, BitBucket- is AND-search.
+   whereas Cliki-search, GitHub-, BitBucket- is AND-search.
 
    e.g. (quicksearch "foo bar")
      Quicklisp-search for "foo" OR "bar".
@@ -278,7 +278,7 @@ _options_ must be a plus integer (as Cut-Off) or-and some keywords which consist
    * u, U -- output URL
    * q, Q -- search in Quicklisp
    * c, C -- search in Cliki
-   * g, G -- search in Github
+   * g, G -- search in GitHub
    * b, B -- search in Bitbucket
 
 

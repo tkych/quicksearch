@@ -42,11 +42,11 @@
                     &key (?web t) (?description nil) (?url nil) (?cut-off 50)
                          (?quicklisp t) (?cliki t) (?github t) (?bitbucket t))
   "
-Search for CL projects with SEARCH-WORD in Quicklisp, Cliki, Github and BitBucket.
+Search for CL projects with SEARCH-WORD in Quicklisp, Cliki, GitHub and BitBucket.
 SEARCH-WORD must be a string, number or symbol (symbol will be automatically converted into downcase-string).
 
 Keywords:
- * If ?WEB is NIL, it does not search in Cliki, Github and BitBucket.
+ * If ?WEB is NIL, it does not search in Cliki, GitHub and BitBucket.
  * If ?QUICKLISP is NIL, it does not search in Quicklisp (also ?CLIKI, ?GITHUB, ?BITBUCKET).
  * At least one search-space must be specified.
  * If ?DESCRIPTION is T, it displays project's descriptions (except for Quicklisp-search).
@@ -59,7 +59,7 @@ Note:
 
  * About #\\Space in SEARCH-WORD:
    In case search-word contains #\\Space, Quicklisp-search is OR-search,
-   whereas Cliki-search, Github-, BitBucket- is AND-search.
+   whereas Cliki-search, GitHub-, BitBucket- is AND-search.
    e.g. (quicksearch \"foo bar\")
         Quicklisp-search for \"foo\" OR \"bar\",
         Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\".
@@ -626,7 +626,7 @@ Options:
    * u, U -- output URL
    * q, Q -- search in Quicklisp
    * c, C -- search in Cliki
-   * g, G -- search in Github
+   * g, G -- search in GitHub
    * b, B -- search in Bitbucket
 
 Note:
