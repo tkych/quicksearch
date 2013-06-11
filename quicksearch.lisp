@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-11 11:07:57 tkych
+;;;; Last modified : 2013-06-11 19:43:52 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -499,13 +499,13 @@ Keywords:
 
  * :THREADING-P
    The value must be a boolean (default T).
-   If value is NIL, then not use threads.
+   If value is NIL, then QUICKSEARCH becomes not to use threads for searching.
 
    Note:
-     In SBCL, threads are part of the default build on x86[-64] Linux only.
+     Currently in SBCL (1.1.8), threads are part of the default build on x86[-64] Linux only.
      Other platforms (x86[-64] Darwin (Mac OS X), x86[-64] FreeBSD, x86 SunOS (Solaris),
      and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
-     For more details, please see SBCL manual (http://www.sbcl.org/manual/index.html#Threading).
+     For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
 
 Note:
  * If you would prefer permanent config, for example, add the following codes in the CL init file.

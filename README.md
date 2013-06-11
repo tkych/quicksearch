@@ -1,4 +1,4 @@
-Last modified : 2013-06-11 11:12:41 tkych
+Last modified : 2013-06-11 19:42:49 tkych
 
 Version: 0.0.92 (alpha)
 
@@ -38,7 +38,7 @@ Installation
 Examples
 --------
 
-##### Null Result:
+##### Null result:
 ```lisp
 CL-REPL> (qs:? "supercalifragilisticexpialidocious") ;<=> (qs:quicksearch "supercalifragilisticexpialidocious")
 NIL
@@ -242,7 +242,6 @@ _search-word_ must be a string, number or symbol (symbol will be automatically c
      Cliki-search, GitHub-, BitBucket- for "foo" AND "bar".
 
 
-
 #### [function] ? _search-word_ _&rest_ _options_
 
 ? is abbreviation wrapper for function QUICKSEARCH.
@@ -323,10 +322,10 @@ Function CONFIG customizes quicksearch's internal parameters which control print
 
  * _:threading-p_
    The value must be a boolean (default T).
-   If value is NIL, then not use threads.
+   If value is NIL, then QUICKSEARCH becomes not to use threads for searching.
 
    Note:
-     In SBCL, threads are part of the default build on x86[-64] Linux only.
+     Currently in SBCL (1.1.8), threads are part of the default build on x86[-64] Linux only.
      Other platforms (x86[-64] Darwin (Mac OS X), x86[-64] FreeBSD, x86 SunOS (Solaris),
      and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
      For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
