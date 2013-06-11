@@ -1,6 +1,6 @@
-Last modified : 2013-06-10 21:02:01 tkych
+Last modified : 2013-06-11 11:12:41 tkych
 
-Version: 0.0.91 (alpha)
+Version: 0.0.92 (alpha)
 
 
 Quicksearch: Search CL Library, Quickly
@@ -39,16 +39,18 @@ Examples
 --------
 
 ##### Null Result:
-```common-lisp
+```lisp
 CL-REPL> (qs:? "supercalifragilisticexpialidocious") ;<=> (qs:quicksearch "supercalifragilisticexpialidocious")
 NIL
 ```
 
+ * If it raises a threading error, probably your CL system might be not support threads.
+   In this case, please type `(qs:config :threading-p nil)` at REPL, then try it again.
  * If search-results is null, then just return NIL.
  
 
 ##### Simple search:
-```common-lisp
+```lisp
 CL-REPL> (qs:? "crypt") ;<=> (qs:quicksearch "crypt")
 
 SEARCH-RESULTS: "crypt"
@@ -76,7 +78,7 @@ T
 
 
 ##### Description:
-```common-lisp
+```lisp
 CL-REPL> (qs:? 'Crypt :d) ;<=> (qs:quicksearch 'Crypt :?description t)
 
 SEARCH-RESULTS: "crypt"
@@ -120,7 +122,7 @@ T
 
 
 ##### URL, Space, Cutoff:
-```common-lisp
+```lisp
 CL-REPL> (qs:? "crypt" :dug 4) ;<=> (qs:quicksearch "crypt"
                                ;                    :?description t :?url t :?cut-off 4
                                ;                    :?quicklisp nil :?cliki nil :?bitbucket nil)
@@ -156,7 +158,7 @@ T
 
 
 ##### Config:
-```common-lisp
+```lisp
 CL-REPL> (qs:? 'lisp-koans :du 1) ;<=> (qs:quicksearch 'lisp-koans
                                   ;                    :?description t :?url t :?cut-off 1)
 
@@ -290,7 +292,7 @@ _options_ must be a plus integer (as Cut-Off) or-and some keywords which consist
  * If at most one search space is specified, then others are not specified.
 
 
-#### [function] CONFIG _&key_ _maximum-columns-of-description_ _maximum-number-of-fetching-repositories_ _cache-size_ _clear-cache_
+#### [function] CONFIG _&key_ _maximum-columns-of-description_ _maximum-number-of-fetching-repositories_ _cache-size_ _clear-cache_ _threading-p_
 
 Function CONFIG customizes quicksearch's internal parameters which control printing, fetching or caching.
 
@@ -319,6 +321,16 @@ Function CONFIG customizes quicksearch's internal parameters which control print
    The value must be a boolean.
    If value is T, then clear all caches.
 
+ * _:threading-p_
+   The value must be a boolean (default T).
+   If value is NIL, then not use threads.
+
+   Note:
+     In SBCL, threads are part of the default build on x86[-64] Linux only.
+     Other platforms (x86[-64] Darwin (Mac OS X), x86[-64] FreeBSD, x86 SunOS (Solaris),
+     and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
+     For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
+
 
 ##### Note:
 
@@ -329,7 +341,8 @@ In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
     (ql:quickload :quicksearch)
     (qs:config :maximum-columns-of-description 50
                :maximum-number-of-fetching-repositories 20
-               :cache-size 2)
+               :cache-size 2
+               :threading-p nil)
 
 
 TODO

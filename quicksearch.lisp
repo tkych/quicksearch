@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-10 21:03:03 tkych
+;;;; Last modified : 2013-06-11 11:07:57 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -32,6 +32,7 @@
 ;; <url>   ::= <string>
 ;; <description> ::= <string> | NIL
 
+(defvar *threading-p* t)
 (defparameter *description-print-p* nil)
 (defparameter *url-print-p* nil)
 (defparameter *cut-off* 50)
@@ -71,11 +72,12 @@ Note:
         (*print-search-results-p* nil)  ;no result, no print
         (threads '()))
 
-    ;; MAP Phase
-    ;; (Strictly, the following is not the MapReduce,
-    ;;  but abstract model is the same if equate threads with worker nodes.)
-    (when ?web
+    (when (and ?web *threading-p*)
+      ;; MAP Phase
+      ;; (Strictly, the following is not the MapReduce,
+      ;;  but abstract model is the same if threads are equated with worker nodes.)
       (let ((drakma:*drakma-default-external-format* :utf-8))
+        ;; (print 'threading) ;for test
         (loop :for space :in '(cliki github bitbucket)
               :for search-p :in (list ?cliki ?github ?bitbucket) :do
            (when (and search-p (not (in-cache-p word space)))
@@ -92,14 +94,26 @@ Note:
           (print-results word it 'quicklisp)
           (setf found-p t))))
 
-    ;; REDUCE Phase
     (when ?web
-      (dolist (th threads) (bt:join-thread th))
-      (loop :for space :in '(cliki github bitbucket)
-            :for search-p :in (list ?cliki ?github ?bitbucket) :do
-         (awhen (and search-p (search-cache word space))
-           (print-results word it space)
-           (setf found-p t))))
+      (if *threading-p*
+          (progn  ;REDUCE Phase
+            ;; (print 'threading) ;for test
+            (dolist (th threads) (bt:join-thread th))
+            (loop
+               :for space :in '(cliki github bitbucket)
+               :for search-p :in (list ?cliki ?github ?bitbucket) :do
+               (awhen (and search-p (search-cache word space))
+                 (print-results word it space)
+                 (setf found-p t))))
+          (loop  ;not using threads
+             :for space :in '(cliki github bitbucket)
+             :for search-p :in (list ?cliki ?github ?bitbucket) :do
+             (when search-p
+               ;; (print 'non-threading) ;for test
+               (awhen (or (search-cache word space)
+                          (search-space word space))
+                 (print-results word it space)
+                 (setf found-p t))))))
 
     found-p))
 
@@ -129,10 +143,10 @@ Note:
       "http://www.cliki.net/site/search?query=~A")
 (setf (get 'github :query-format)
       "https://github.com/search?q=~A~
-         &type=Repositories&ref=advsearch&l=Common+Lisp")
+       &type=Repositories&ref=advsearch&l=Common+Lisp")
 (setf (get 'bitbucket :query-format)
       "https://bitbucket.org/repo/all/relevance?name=~A~
-         &language=common+lisp")
+       &language=common+lisp")
 
 ;; drakma options
 (setf (get 'cliki     :drakma-options) nil
@@ -214,11 +228,18 @@ Note:
 ;; 5. RETURN repos
 
 ;; Strictly, the following is not the MapReduce,
-;; but abstract model is the same if equate threads with worker nodes.
-;; Inefficient example: 
+;; but abstract model is the same if threads are equated with worker nodes.
+
+;; Examples (inefficient but intuitive):
 ;;   (map-reduce #'+
-;;               (lambda (x) (expt x 2))
+;;               (lambda (x) (expt x 2)) ;<- each thread computes this
 ;;               '(1 2 3 4))
+;;    => 30
+;;   (map-reduce #'append
+;;               (lambda (x) (list (expt x 2))) ;<- each thread computes this
+;;               '(1 2 3 4))
+;;    => (1 4 9 16)
+
 (defun map-reduce (reduce-fn map-fn lst)
   (reduce reduce-fn
           (map 'vector
@@ -227,36 +248,24 @@ Note:
                lst)
           :key #'bt:join-thread))
 
+
 (defun search-space (word space)
   (let* ((response (fetch (gen-query word space) space))
          (repos    (extract-repos response space)))
     (awhen (extract-next-page-url response space)
-      (alexandria:appendf repos
-        (map-reduce #'append
-                    (lambda (url) (extract-repos (fetch url space) space))
-                    it)))
+      (if *threading-p*
+          (alexandria:appendf repos
+            (map-reduce #'append
+                        (lambda (url)
+                          (extract-repos (fetch url space) space))
+                        it))
+          (loop
+             :for url :in it
+             :for res := (fetch url space)
+             :do (alexandria:appendf
+                  repos (extract-repos res space)))))
     (store-cache word repos space)
     repos))
-
-;; (defun search-space (word space)
-;;   (let* ((response (fetch (gen-query word space) space))
-;;          (repos    (extract-repos response space)))
-;;     (awhen (extract-next-page-url response space)
-;;       (loop
-;;          :for url :in it
-;;          :for i :from 2
-;;          :collect (apply #'bt:make-thread (search-next url space i))
-;;          :into threads
-;;          :finally
-;;          (loop :for th :in threads :do
-;;             (alexandria:appendf
-;;              repos (extract-repos (bt:join-thread th) space)))))
-;;     (store-cache word repos space)
-;;     repos))
-
-;; (defun search-next (url space i)
-;;   (list (lambda () (fetch url space))
-;;         :name (format nil "~(~A~)-next-search~D" space i)))
 
 
 ;;--------------------------------------
@@ -456,7 +465,6 @@ Note:
 ;;--------------------------------------------------------------------
 ;; !! TODO !!
 ;; ==========
-;; * test: max-cols, max-repos, cache-size, clear-cache
 ;; * interactive-config
 
 (defun config (&key ((:maximum-columns-of-description max-cols)
@@ -464,32 +472,40 @@ Note:
                     ((:maximum-number-of-fetching-repositories max-repos)
                      50 max-repos-supplied-p)
                     (cache-size 4 cache-size-supplied-p)
-                    (clear-cache nil clear-cache-supplied-p))
+                    (clear-cache nil clear-cache-supplied-p)
+                    (threading-p t threading-p-supplied-p))
   "
 Function CONFIG customizes quicksearch's internal parameters which controls printing, fetching or caching.
 
 Keywords:
- * :MAXIMUM-COLUMNS-OF-DESCRIPTION
+ * :MAXIMUM-COLUMNS-OF-DESCRIPTION (default 80)
    The value must be a plus integer bigger than 5.
    If the length of description-string is bigger than this value,
    then output of description is inserted newline for easy to see.
-   Default value is 80.
 
- * :MAXIMUM-NUMBER-OF-FETCHING-REPOSITORIES
+ * :MAXIMUM-NUMBER-OF-FETCHING-REPOSITORIES (default 50)
    This value controls the number of fetching repositories.
    The value must be a plus integer.
    Increasing this value, the number of fetching repositories increases, but also space & time does.
-   Default value is 50.
 
  * :CACHE-SIZE
-   The value must be a plus integer.
+   The value must be a plus integer (default 4).
    This value is the number of stored previous search-results.
    Increasing this value, the number of caching results increases, but also space does.
-   Default value is 4.
 
  * :CLEAR-CACHE
-   The value must be a boolean.
+   The value must be a boolean (default NIL).
    If value is T, then clear all caches.
+
+ * :THREADING-P
+   The value must be a boolean (default T).
+   If value is NIL, then not use threads.
+
+   Note:
+     In SBCL, threads are part of the default build on x86[-64] Linux only.
+     Other platforms (x86[-64] Darwin (Mac OS X), x86[-64] FreeBSD, x86 SunOS (Solaris),
+     and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
+     For more details, please see SBCL manual (http://www.sbcl.org/manual/index.html#Threading).
 
 Note:
  * If you would prefer permanent config, for example, add the following codes in the CL init file.
@@ -498,10 +514,12 @@ Note:
    (ql:quickload :quicksearch)
    (qs:config :maximum-columns-of-description 50
               :maximum-number-of-fetching-repositories 20
-              :cache-size 2)
+              :cache-size 2
+              :threading-p nil)
 "
   (if (or max-cols-supplied-p  max-repos-supplied-p
-          cache-size-supplied-p clear-cache-supplied-p)
+          cache-size-supplied-p clear-cache-supplied-p
+          threading-p-supplied-p)
       (progn
         (when max-cols-supplied-p
           (if (and (integerp max-cols)
@@ -537,7 +555,14 @@ Note:
                 (clear-cache)
                 (format t "All caches cleaned.")
                 t)
-              (error "~S is not boolean." clear-cache))))
+              (error "~S is not boolean." clear-cache)))
+        (when threading-p-supplied-p
+          (if (typep threading-p 'boolean)
+              (progn
+                (setf *threading-p* threading-p)
+                (format t "~&Threads supported: ~S" threading-p)
+                t)
+              (error "~S is not boolean." threading-p))))
       (error "At most one keyword must be supplied."); (interactive-config)
       ))
 
