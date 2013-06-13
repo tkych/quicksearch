@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-13 18:35:00 tkych
+;;;; Last modified : 2013-06-13 20:08:05 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -40,8 +40,8 @@
   "
 MAP-REDUCE is suitable for only the case that MAPPER's cost is much expensive.
  (QUICKSEARCH uses this function for drakma:http-request)
-For each element of SEQUENCE, as an argument, the function MAPPER parallel computes on each thread,
-then the results are collected by function REDUCER.
+For each element of SEQUENCE (as an argument), MAPPER is computed with each thread,
+then the results are collected by REDUCER.
 
 Examples (inefficient but intuitive):
   (map-reduce #'+

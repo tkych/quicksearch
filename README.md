@@ -1,4 +1,4 @@
-Last modified : 2013-06-13 18:32:20 tkych
+Last modified : 2013-06-13 20:10:47 tkych
 
 Version: 0.0.93 (alpha)
 
@@ -39,6 +39,7 @@ Examples
 --------
 
 ##### Null result:
+
 ```lisp
 CL-REPL> (qs:? "supercalifragilisticexpialidocious") ;<=> (qs:quicksearch "supercalifragilisticexpialidocious")
 NIL
@@ -50,6 +51,7 @@ NIL
 
 
 ##### Simple search:
+
 ```lisp
 CL-REPL> (qs:? "crypt") ;<=> (qs:quicksearch "crypt")
 
@@ -78,6 +80,7 @@ T
 
 
 ##### Description:
+
 ```lisp
 CL-REPL> (qs:? 'Crypt :d) ;<=> (qs:quicksearch 'Crypt :?description t)
 
@@ -122,10 +125,11 @@ T
 
 
 ##### URL, Space, Cutoff:
+
 ```lisp
-CL-REPL> (qs:? "crypt" :dug 4) ;<=> (qs:quicksearch "crypt"
-                               ;                    :?description t :?url t :?cut-off 4
-                               ;                    :?quicklisp nil :?cliki nil :?bitbucket nil)
+CL-REPL> (qs:? "crypt" :ug 4) ;<=> (qs:quicksearch "crypt"
+                              ;                    :?description nil :?url t :?cut-off 4
+                              ;                    :?quicklisp nil :?cliki nil :?bitbucket nil)
 
 SEARCH-RESULTS: "crypt"
 =======================
@@ -134,30 +138,27 @@ SEARCH-RESULTS: "crypt"
  ------
   cl-crypt
       https://github.com/renard/cl-crypt
-      Common-Lisp implementation of unix crypt function
   cl-crypto
       https://github.com/bgs100/cl-crypto
-      A common lisp package of ciphers, public-key algorithms, etc.
   cl-crypto
       https://github.com/billstclair/cl-crypto
-      Pure lisp crypto, written from specs
   cryptography
       https://github.com/MorganBauer/cryptography
-      implementations of ciphers for cryptography class
   .......> 2
 T
 ```
 
- * If option `:u` is on, then the url of the project is printed.
+ * If option `:u` is on, then the project's url is printed.
  * If option `:g` is on, then only github-results are printed
-   (also `:q` - quicklisp, `:c` - cliki, `:b` - bitbutcket. these options are additive).
+   (also `:q` - quicklisp, `:c` - cliki, `:b` - bitbutcket. these options are addable).
  * If cut-off is supplied (above 4), then the number of output results is bellow cut-off
    (the number (above 2) after `.......>` is number of remains).
  * The order of options is nothing to do with search-result
-   (e.g. `:dug 4` <=> `4 :gud` <=> `:du 4 :g` <=> ...).
+   (e.g. `:ug 4` <=> `4 :gu` <=> `:u 4 :g` <=> ...).
 
 
 ##### Config:
+
 ```lisp
 CL-REPL> (qs:? 'lisp-koans :du 1) ;<=> (qs:quicksearch 'lisp-koans
                                   ;                    :?description t :?url t :?cut-off 1)
@@ -337,7 +338,7 @@ Function CONFIG customizes quicksearch's internal parameters which controls prin
    If value is T, then outputs version of quicklisp and whether library had installed your local.
 
    Example:
-   
+
 ```lisp
      CL-REPL> (qs:config :quicklisp-verbose? T)
      CL-REPL> (qs:? "json" :q)
@@ -352,7 +353,6 @@ Function CONFIG customizes quicksearch's internal parameters which controls prin
        st-json
      T
 ```
-
 
 
 ##### Note:
