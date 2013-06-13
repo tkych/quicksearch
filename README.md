@@ -1,6 +1,6 @@
-Last modified : 2013-06-11 19:42:49 tkych
+Last modified : 2013-06-13 18:32:20 tkych
 
-Version: 0.0.92 (alpha)
+Version: 0.0.93 (alpha)
 
 
 Quicksearch: Search CL Library, Quickly
@@ -8,7 +8,7 @@ Quicksearch: Search CL Library, Quickly
 
 Quicksearch is a search-engine-interface for Common Lisp.
 The goal of Quicksearch is to find the CL library quickly.
-For example, if you will find the library about json, just type `(qs:? "json")` at REPL.
+For example, if you will find the library about json, just type `(qs:? 'json)` at REPL.
 
 The function QUICKSEARCH searches for CL projects in Quicklisp, Cliki,
 GitHub and BitBucket, then outputs results in REPL.
@@ -45,7 +45,7 @@ NIL
 ```
 
  * If it raises a threading error, probably your CL system might be not support threads.
-   In this case, please type `(qs:config :threading-p nil)` at REPL, then try it again.
+   In this case, please type `(qs:config :threading? nil)` at REPL, then try it again.
  * If search-results is null, then just return NIL.
 
 
@@ -246,7 +246,7 @@ _search-word_ must be a string, number or symbol (symbol will be automatically c
 
 ? is abbreviation wrapper for function QUICKSEARCH.
 _search-word_ must be a string, number or symbol.
-_options_ must be a plus integer (as Cut-Off) or-and some keywords which consists of some Option-Chars.
+_options_ must be a non-negative integer (as Cut-Off) or-and some keywords which consists of some Option-Chars.
 
 
 ##### Examples:
@@ -270,7 +270,7 @@ _options_ must be a plus integer (as Cut-Off) or-and some keywords which consist
 ##### Options:
 
  * Cut-Off:
-   * The max number of printing results.
+   * The max number of printing results (default is 50).
 
  * Option-Chars:
    * d, D -- output Description
@@ -291,9 +291,9 @@ _options_ must be a plus integer (as Cut-Off) or-and some keywords which consist
  * If at most one search space is specified, then others are not specified.
 
 
-#### [function] CONFIG _&key_ _maximum-columns-of-description_ _maximum-number-of-fetching-repositories_ _cache-size_ _clear-cache_ _threading-p_
+#### [function] CONFIG _&key_ _maximum-columns-of-description_ _maximum-number-of-fetching-repositories_ _cache-size_ _clear-cache?_ _threading?_ _quicklisp-verbose?_
 
-Function CONFIG customizes quicksearch's internal parameters which control printing, fetching or caching.
+Function CONFIG customizes quicksearch's internal parameters which controls printing, fetching or caching.
 
 
 ##### Keywords:
@@ -316,11 +316,11 @@ Function CONFIG customizes quicksearch's internal parameters which control print
    Increasing this value, the number of caching results increases, but also space does.
    Default value is 4.
 
- * _:clear-cache_
+ * _:clear-cache?_
    The value must be a boolean.
    If value is T, then clear all caches.
 
- * _:threading-p_
+ * _:threading?_
    The value must be a boolean (default T).
    If value is NIL, then QUICKSEARCH becomes not to use threads for searching.
 
@@ -330,10 +330,30 @@ Function CONFIG customizes quicksearch's internal parameters which control print
      and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
      For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
 
+ * _quicklisp-verbose?_
+   The value must be a boolean (default NIL).
+   If value is T, then outputs version of quicklisp and whether library had installed your local.
+
+   Example:
+   
+     CL-REPL> (qs:config :quicklisp-verbose? T)
+     CL-REPL> (qs:? "json" :q)
+
+     SEARCH-RESULTS: "json"
+
+      Quicklisp: 2013-04-20   ;<- quicklisp version
+       !cl-json               ;<- if library has installed via quicklisp, print prefix "!".
+       !cl-json.test
+       com.gigamonkeys.json   ;<- if not, none.
+       json-template
+       st-json
+     T
+
 
 ##### Note:
 
-If you would prefer permanent config, for example, add the following codes in the CL init file.
+If you would prefer permanent config, for example,
+add codes something like the following in the CL init file.
 
 In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
 
@@ -341,7 +361,8 @@ In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
     (qs:config :maximum-columns-of-description 50
                :maximum-number-of-fetching-repositories 20
                :cache-size 2
-               :threading-p nil)
+               :threading? nil
+               :quicklisp-verbose? t)
 
 
 TODO

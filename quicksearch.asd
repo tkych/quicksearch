@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-10 21:03:38 tkych
+;;;; Last modified : 2013-06-13 18:12:48 tkych
 
 ;; quicksearch/quicksearch.asd
 
@@ -21,7 +21,7 @@
 (asdf:defsystem #:quicksearch
   :name        "Quicksearch"
   :description "Quicksearch searches CL library, then outputs results at REPL."
-  :version     "0.0.91"
+  :version     "0.0.**"
   :licence     "MIT License"
   :author      "Takaya OCHIAI <tkych.repl@gmail.com>"
   :depends-on  (#:iterate #:anaphora #:alexandria #:cl-ppcre #:drakma

@@ -1,6 +1,12 @@
-;;;; Last modified : 2013-06-11 19:43:52 tkych
+;;;; Last modified : 2013-06-13 18:35:00 tkych
 
 ;; quicksearch/quicksearch.lisp
+
+;; TODO
+;; ----
+;; * interactive-config
+;; * reduce consing
+;; * more efficient regex
 
 
 ;;====================================================================
@@ -22,6 +28,53 @@
 
 
 ;;--------------------------------------------------------------------
+;; Utilities
+;;--------------------------------------------------------------------
+
+(defun str (&rest strings)
+  "Return appended strings."
+  (apply #'concatenate 'string strings))
+
+
+(defun map-reduce (reducer mapper sequence)
+  "
+MAP-REDUCE is suitable for only the case that MAPPER's cost is much expensive.
+ (QUICKSEARCH uses this function for drakma:http-request)
+For each element of SEQUENCE, as an argument, the function MAPPER parallel computes on each thread,
+then the results are collected by function REDUCER.
+
+Examples (inefficient but intuitive):
+  (map-reduce #'+
+              (lambda (x) (expt x 2)) ;<- each thread computes this
+              '(1 2 3 4))
+   => 30
+
+  (map-reduce #'append
+              (lambda (x) (list (expt x 2)))
+              '(1 2 3 4))
+   => (1 4 9 16)
+
+  (map-reduce (lambda (x y) (format nil \"~A~A\" x y))
+              (lambda (c) (code-char (1- (char-code c))))
+             \"IBM\")
+   => \"HAL\"
+
+Note:
+  * Use only for expensive computation.
+  * If MAPPER assigns a value for the same global variable, it will cause interleave.
+  * Strictly, this MAP-REDUCE is not the MapReduce,
+    but abstract model is the same if threads are equated with worker nodes.
+"
+  (reduce reducer
+          (map 'vector
+               (lambda (x)
+                 (bordeaux-threads:make-thread
+                  (lambda () (funcall mapper x))))
+               sequence)
+          :key #'bordeaux-threads:join-thread))
+
+
+;;--------------------------------------------------------------------
 ;; Main
 ;;--------------------------------------------------------------------
 ;; <word>  ::= <string>
@@ -32,11 +85,11 @@
 ;; <url>   ::= <string>
 ;; <description> ::= <string> | NIL
 
-(defvar *threading-p* t)
-(defparameter *description-print-p* nil)
-(defparameter *url-print-p* nil)
+(defvar *threading?* t)
+(defparameter *description-print?* nil)
+(defparameter *url-print?* nil)
 (defparameter *cut-off* 50)
-(defparameter *print-search-results-p* nil)
+(defparameter *print-search-results?* nil)
 
 (defun quicksearch (search-word
                     &key (?web t) (?description nil) (?url nil) (?cut-off 50)
@@ -55,7 +108,7 @@ Keywords:
 
 Note:
  * keyword ?CUT-OFF controls only printing results,
-   nothing to do with the max number of fetching repos (c.f. function CONFIG documentation).
+   nothing to do with the maximum number of fetching repositories (c.f. function CONFIG documentation).
 
  * About #\\Space in SEARCH-WORD:
    In case search-word contains #\\Space, Quicklisp-search is OR-search,
@@ -64,27 +117,26 @@ Note:
         Quicklisp-search for \"foo\" OR \"bar\",
         Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\".
 "
-  (let ((*url-print-p* ?url)
-        (*description-print-p* ?description)
+  (let ((*url-print?* ?url)
+        (*description-print?* ?description)
         (*cut-off* ?cut-off)
         (word (write-to-string search-word :case :downcase :escape nil))
-        (found-p nil)
-        (*print-search-results-p* nil)  ;no result, no print
+        (found? nil)
+        (*print-search-results?* nil)  ;no result, no print
         (threads '()))
 
-    (when (and ?web *threading-p*)
+    (when (and ?web *threading?*)
       ;; MAP Phase
       ;; (Strictly, the following is not the MapReduce,
       ;;  but abstract model is the same if threads are equated with worker nodes.)
       (let ((drakma:*drakma-default-external-format* :utf-8))
         ;; (print 'threading) ;for test
-        (loop :for space :in '(cliki github bitbucket)
-              :for search-p :in (list ?cliki ?github ?bitbucket) :do
-           (when (and search-p (not (in-cache-p word space)))
+        (loop :for space   :in '(cliki github bitbucket)
+              :for search? :in (list ?cliki ?github ?bitbucket) :do
+           (when (and search? (not (in-cache-p word space)))
              ;; Search word in the web, and Store result into cache.
              ;; Since each space has its own cache, lock isn't need.
-             (push (apply #'bt:make-thread (search-web word space))
-                   threads)))))
+             (push (search-web-by-thread word space) threads)))))
 
     #+quicklisp  ;for build
     (when ?quicklisp
@@ -92,34 +144,34 @@ Note:
       (dolist (w (ppcre:split " " word))
         (awhen (search-quicklisp w)
           (print-results word it 'quicklisp)
-          (setf found-p t))))
+          (setf found? t))))
 
     (when ?web
-      (if *threading-p*
+      (if *threading?*
           (progn  ;REDUCE Phase
             ;; (print 'threading) ;for test
-            (dolist (th threads) (bt:join-thread th))
+            (dolist (th threads) (bordeaux-threads:join-thread th))
             (loop
-               :for space :in '(cliki github bitbucket)
-               :for search-p :in (list ?cliki ?github ?bitbucket) :do
-               (awhen (and search-p (search-cache word space))
+               :for space   :in '(cliki github bitbucket)
+               :for search? :in (list ?cliki ?github ?bitbucket) :do
+               (awhen (and search? (search-cache word space))
                  (print-results word it space)
-                 (setf found-p t))))
+                 (setf found? t))))
           (loop  ;not using threads
-             :for space :in '(cliki github bitbucket)
-             :for search-p :in (list ?cliki ?github ?bitbucket) :do
-             (when search-p
+             :for space   :in '(cliki github bitbucket)
+             :for search? :in (list ?cliki ?github ?bitbucket) :do
+             (when search?
                ;; (print 'non-threading) ;for test
-               (awhen (or (search-cache word space)
-                          (search-space word space))
-                 (print-results word it space)
-                 (setf found-p t))))))
+               (multiple-value-bind (repos stored?) (search-cache word space)
+                 (if stored?
+                     (progn
+                       (print-results word repos space)
+                       (setf found? t))
+                     (awhen (search-web word space)
+                       (print-results word it space)
+                       (setf found? t))))))))
 
-    found-p))
-
-(defun search-web (word space)
-  (list (lambda () (search-space word space))
-        :name (format nil "~(~A~)-search" space)))
+    found?))
 
 
 ;;--------------------------------------------------------------------
@@ -158,17 +210,38 @@ Note:
 ;; Search-Quicklisp
 ;;--------------------------------------------------------------------
 
+(defvar *quicklisp-verbose?* nil)
+
 #+quicklisp  ;for build
-(defun search-quicklisp (word)
-  (loop
-     :for sys :in (ql-dist:provided-systems t)
-     :when (or (search word (ql-dist:name sys))
-               (search word (ql-dist:name (ql-dist:release sys))))
-     :collect (list (ql-dist:name sys)
-                    (slot-value (ql-dist:release sys)
-                                'ql-dist::archive-url)
-                    nil ;(ql-dist:short-description sys) <=> (ql-dist:name sys)
-                    )))
+(progn
+  
+  (defun search-quicklisp (word)
+    (loop
+       :for sys :in (ql-dist:provided-systems t)
+       :when (or (search word (ql-dist:name sys))
+                 (search word (ql-dist:name (ql-dist:release sys))))
+       :collect (list (if (and *quicklisp-verbose?* (in-local-p sys))
+                          (str "!" (ql-dist:name sys))
+                          (ql-dist:name sys))
+                      (slot-value (ql-dist:release sys)
+                                  'ql-dist::archive-url)
+                      nil)  ;(ql-dist:short-description sys)
+                            ; <=> (ql-dist:name sys)
+       :into results
+       :finally (progn
+                  (when *quicklisp-verbose?* (set-version sys))
+                  (return results))))
+
+  (defun set-version (sys)
+    (setf (get 'quicklisp :name)
+          (str "Quicklisp: " (ql-dist:version (ql-dist:dist sys)))))
+
+  (defun in-local-p (sys)
+    (handler-case (not (ql-dist:check-local-archive-file
+                        (ql-dist:release sys)))
+      (ql-dist:missing-local-archive () nil)))
+
+) ;end of #+quicklisp
 
 
 ;;--------------------------------------------------------------------
@@ -219,7 +292,7 @@ Note:
 
 
 ;;--------------------------------------------------------------------
-;; Search-Space
+;; Search-Web
 ;;--------------------------------------------------------------------
 ;; 1. FETCH word from space
 ;; 2. EXTRACT repos from response
@@ -227,33 +300,11 @@ Note:
 ;; 4. STORE repos in cache
 ;; 5. RETURN repos
 
-;; Strictly, the following is not the MapReduce,
-;; but abstract model is the same if threads are equated with worker nodes.
-
-;; Examples (inefficient but intuitive):
-;;   (map-reduce #'+
-;;               (lambda (x) (expt x 2)) ;<- each thread computes this
-;;               '(1 2 3 4))
-;;    => 30
-;;   (map-reduce #'append
-;;               (lambda (x) (list (expt x 2))) ;<- each thread computes this
-;;               '(1 2 3 4))
-;;    => (1 4 9 16)
-
-(defun map-reduce (reduce-fn map-fn lst)
-  (reduce reduce-fn
-          (map 'vector
-               (lambda (x)
-                 (bt:make-thread (lambda () (funcall map-fn x))))
-               lst)
-          :key #'bt:join-thread))
-
-
-(defun search-space (word space)
+(defun search-web (word space)
   (let* ((response (fetch (gen-query word space) space))
          (repos    (extract-repos response space)))
     (awhen (extract-next-page-url response space)
-      (if *threading-p*
+      (if *threading?*
           (alexandria:appendf repos
             (map-reduce #'append
                         (lambda (url)
@@ -266,6 +317,11 @@ Note:
                   repos (extract-repos res space)))))
     (store-cache word repos space)
     repos))
+
+(defun search-web-by-thread (word space)
+  (bordeaux-threads:make-thread
+   (lambda () (search-web word space))
+   :name (format nil "~(~A~)-search" space)))
 
 
 ;;--------------------------------------
@@ -378,7 +434,7 @@ Note:
                     (html-entities:decode-entities next-url))
             urls))
     (let ((rest-urls (nreverse (rest urls)))) ;first and last is the same.
-      (print rest-urls) ;for dbg
+      ;; (print rest-urls) ;for dbg
       (subseq rest-urls
               0 (min (max-num-next-pages) (length rest-urls))))))
 
@@ -406,7 +462,7 @@ Note:
 
 (defun print-search-results (word)
   (format t "~%SEARCH-RESULTS: ~S~%" word)
-  (when (or *description-print-p* *url-print-p*)
+  (when (or *description-print?* *url-print?*)
     (print-line
      (+ #.(length "SEARCH-RESULTS: \"\"") (length word))
      #\=)
@@ -417,22 +473,22 @@ Note:
 
 (defun print-space (space)
   (format t "~% ~A~%" (get space :name))
-  (when (or *description-print-p* *url-print-p*)
+  (when (or *description-print?* *url-print?*)
     (format t " ") (print-line (length (get space :name)) #\-)))
 
 (defun print-results (word repos space)
   (when repos
     ;; only when search-result has not printed yet, print it.
-    (unless *print-search-results-p*
+    (unless *print-search-results?*
       (print-search-results word)
-      (setf *print-search-results-p* t))
+      (setf *print-search-results?* t))
     (print-space space)
     (loop :for (title url desc) :in repos
           :repeat *cut-off* :do
        (format t "~&  ~A" (html-entities:decode-entities title))
-       (when *url-print-p*
+       (when *url-print?*
          (format t "~%      ~A" (gen-url url space)))
-       (when *description-print-p*
+       (when *description-print?*
          (pprint-description
           (html-entities:decode-entities desc))))
     (when (< *cut-off* (length repos))
@@ -466,14 +522,16 @@ Note:
 ;; !! TODO !!
 ;; ==========
 ;; * interactive-config
+;; * ?! quicklisp-verbose? -> quicklisp-verbose?
 
 (defun config (&key ((:maximum-columns-of-description max-cols)
-                     80 max-cols-supplied-p)
+                     80 max-cols-supplied?)
                     ((:maximum-number-of-fetching-repositories max-repos)
-                     50 max-repos-supplied-p)
-                    (cache-size 4 cache-size-supplied-p)
-                    (clear-cache nil clear-cache-supplied-p)
-                    (threading-p t threading-p-supplied-p))
+                     50 max-repos-supplied?)
+                    (cache-size         4   cache-size-supplied?)
+                    (clear-cache?       nil clear-cache-supplied?)
+                    (threading?         t   threading-supplied?)
+                    (quicklisp-verbose? nil quicklisp-verbose-supplied?))
   "
 Function CONFIG customizes quicksearch's internal parameters which controls printing, fetching or caching.
 
@@ -493,11 +551,11 @@ Keywords:
    This value is the number of stored previous search-results.
    Increasing this value, the number of caching results increases, but also space does.
 
- * :CLEAR-CACHE
+ * :CLEAR-CACHE?
    The value must be a boolean (default NIL).
    If value is T, then clear all caches.
 
- * :THREADING-P
+ * :THREADING?
    The value must be a boolean (default T).
    If value is NIL, then QUICKSEARCH becomes not to use threads for searching.
 
@@ -507,21 +565,42 @@ Keywords:
      and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
      For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
 
-Note:
- * If you would prefer permanent config, for example, add the following codes in the CL init file.
-   In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
+ * :QUICKLISP-VERBOSE?
+   The value must be a boolean (default NIL).
+   If value is T, then outputs version of quicklisp and whether library had installed your local.
 
+   Example:
+     CL-REPL> (qs:config :QUICKLISP-VERBOSE? T)
+     CL-REPL> (qs:? \"json\" :q)
+
+     SEARCH-RESULTS: \"json\"
+
+      Quicklisp: 2013-04-20   ;<- quicklisp version
+       !cl-json               ;<- if library has installed via quicklisp, print prefix \"!\".
+       !cl-json.test
+       com.gigamonkeys.json   ;<- if not, none.
+       json-template
+       st-json
+     T
+
+Note:
+ * If you would prefer permanent configuration,
+   for example, add codes something like the following in the CL init file.
+
+   In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
    (ql:quickload :quicksearch)
    (qs:config :maximum-columns-of-description 50
               :maximum-number-of-fetching-repositories 20
               :cache-size 2
-              :threading-p nil)
+              :threading? nil
+              :quicklisp-verbose? t)
 "
-  (if (or max-cols-supplied-p  max-repos-supplied-p
-          cache-size-supplied-p clear-cache-supplied-p
-          threading-p-supplied-p)
+  (if (not (or max-cols-supplied?  max-repos-supplied?
+               cache-size-supplied? clear-cache-supplied?
+               threading-supplied? quicklisp-verbose-supplied?))
+      (error "At most one keyword must be supplied."); !? (interactive-config)
       (progn
-        (when max-cols-supplied-p
+        (when max-cols-supplied?
           (if (and (integerp max-cols)
                    (< *description-indent-num* max-cols))
               (progn
@@ -531,7 +610,7 @@ Note:
                 (clear-cache)
                 t)
               (error "~S is not plus integer." max-cols)))
-        (when max-repos-supplied-p
+        (when max-repos-supplied?
           (if (and (integerp max-repos)
                    (plusp max-repos))
               (progn
@@ -540,7 +619,7 @@ Note:
                         *max-num-web-search-results*)
                 t)
               (error "~S is not plus integer." max-repos)))
-        (when cache-size-supplied-p
+        (when cache-size-supplied?
           (if (and (integerp cache-size)
                    (<= 0 cache-size))
               (progn
@@ -549,22 +628,34 @@ Note:
                 (format t "~&Current cache size: ~D"  *cache-size*)
                 t)
               (error "~S is not plus integer." cache-size)))
-        (when clear-cache-supplied-p
-          (if (and clear-cache (typep clear-cache 'boolean))
+        (when clear-cache-supplied?
+          (if (and clear-cache? (typep clear-cache? 'boolean))
               (progn
                 (clear-cache)
                 (format t "All caches cleaned.")
                 t)
-              (error "~S is not boolean." clear-cache)))
-        (when threading-p-supplied-p
-          (if (typep threading-p 'boolean)
+              (error "~S is not boolean." clear-cache?)))
+        (when threading-supplied?
+          (if (typep threading? 'boolean)
               (progn
-                (setf *threading-p* threading-p)
-                (format t "~&Threads supported: ~S" threading-p)
+                (setf *threading?* threading?)
+                (format t "~&Using threads for searching: ~S" threading?)
                 t)
-              (error "~S is not boolean." threading-p))))
-      (error "At most one keyword must be supplied."); (interactive-config)
-      ))
+              (error "~S is not boolean." threading?)))
+        (when quicklisp-verbose-supplied?
+          (if (typep quicklisp-verbose? 'boolean)
+              (if quicklisp-verbose?
+                  (progn
+                    (setf *quicklisp-verbose?* t)
+                    (format t "~&Quicklisp verbose: T")
+                    t)
+                  (progn
+                    (setf *quicklisp-verbose?*  nil
+                          (get 'quicklisp :name) "Quicklisp")
+                    (format t "~&Quicklisp verbose: NIL")
+                    t))
+              (error "~S is not boolean." quicklisp-verbose?)))
+        )))
 
 
 ;; (defun interactive-config ()
@@ -616,11 +707,11 @@ Note:
   "
 ? is abbreviation wrapper for function QUICKSEARCH.
 SEARCH-WORD must be a string, number or symbol.
-OPTIONS must be a plus integer (as Cut-Off) or-and some keywords which consists of some Option-Chars.
+OPTIONS must be a non-negative integer (as Cut-Off) or-and some keywords which consists of some Option-Chars.
 
 Options:
  * Cut-Off:
-   * The max number of printing results.
+   * The max number of printing results (default is 50).
  * Option-Chars:
    * d, D -- output Description
    * u, U -- output URL
@@ -666,10 +757,10 @@ Examples:
                   ((#\G #\g) (setf g t))
                   ((#\B #\b) (setf b t))
                   (t         (error "~A is unknown option." char)))))
-            ((and (integerp opt) (plusp opt))
+            ((and (integerp opt) (or (plusp opt) (zerop opt)))
              (setf cut-off opt))
             (t
-             (error "~S is neither keyword nor integer." opt))))
+             (error "~S is neither keyword nor non-negative-integer." opt))))
     (if (or q c g b)
         (quicksearch search-word
                      :?description d :?url u :?cut-off cut-off

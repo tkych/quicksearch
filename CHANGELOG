@@ -1,12 +1,68 @@
+Last modified : 2013-06-13 18:24:59 tkych
+
+
+======================================================================
+ Change Log for Quicksearch
+======================================================================
+
+Version 0.0.93 (alpha)
+2013-06-13
+Fix Typo: Thanks! Juanito Fatas for fixing many typos.
+Add     : QUICKLISP-VERBOSE? to CONFIG, etc.
+
 Version 0.0.92 (alpha)
 2013-06-11
-Added: non-threading search.
+Add     : non-threading search.
 
 Version 0.0.91 (alpha)
 2013-06-10
-Initial release: REFACTORING.
-                 ADDED: threads, cache, abbreviation wrapper.
+Refactoring: threading, cache, abbreviation wrapper, etc.
+Initial Release
 
 Version 0.0.00
 2013-05-20
 Project Start: QUICKSEARCH obsoletes CL-SEEK-PROJECT
+
+
+----------------------------------------------------------------------
+CL-SEEK-PROJECT obsoleted by QUICKSEARCH
+
+Version 0.1.15
+2013-03-20
+Fix Bug: cliki-search, regex.
+       : github-search, remove output's emphasis tags <em>~</em>.
+
+Version 0.1.14
+2013-03-10
+Fix Bug: github-search, all language, api-v3 -> advanced search
+Rename : *description-max-num-cols* -> *max-num-description-columns*
+
+Version 0.1.13
+2013-02-26
+Add    : pprint for description.
+Fix Bug: not displayed BitBucket project whitch have no description.
+Rename : seek.lisp + package.lisp -> core.lisp
+
+Version 0.1.12
+2013-02-25
+Add   : search-space BitBucket-Repos.
+Modify: tentative modification for quicklisp-build.
+
+Version 0.1.11
+2013-02-22
+Rename: Project-Name cl-project-search -> cl-seek-project
+      : Thanks! Robert Smith for useful suggestion.
+
+Version 0.1.01
+2013-02-21
+Rename: fn search-project -> seek
+
+Version 0.1.00
+2013-01-12
+Initial release
+
+Version 0.0.00
+2013-01-09
+Project Start
+
+======================================================================
