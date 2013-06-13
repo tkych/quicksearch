@@ -251,20 +251,22 @@ _options_ must be a non-negative integer (as Cut-Off) or-and some keywords which
 
 ##### Examples:
 
-    (? "crypt")
-    <=>
-    (quicksearch "crypt" :?description nil :?url nil :?cut-off 50
-                         :?quicklisp t :?cliki t :?github t :?bitbucket t)
+```lisp
+(? "crypt")
+<=>
+(quicksearch "crypt" :?description nil :?url nil :?cut-off 50
+                     :?quicklisp t :?cliki t :?github t :?bitbucket t)
 
-    (? "crypt" :du 10)
-    <=>
-    (quicksearch "crypt" :?description T :?url T :?cut-off 10
-                         :?quicklisp t :?cliki t :?github t :?bitbucket t)
+(? "crypt" :du 10)
+<=>
+(quicksearch "crypt" :?description T :?url T :?cut-off 10
+                     :?quicklisp t :?cliki t :?github t :?bitbucket t)
 
-    (? "crypt" 20 :g :d)
-    <=>
-    (quicksearch "crypt" :?description T :?url nil :?cut-off 20
-                         :?quicklisp nil :?cliki nil :?github T :?bitbucket nil)
+(? "crypt" 20 :g :d)
+<=>
+(quicksearch "crypt" :?description T :?url nil :?cut-off 20
+                     :?quicklisp nil :?cliki nil :?github T :?bitbucket nil)
+```
 
 
 ##### Options:
@@ -336,6 +338,7 @@ Function CONFIG customizes quicksearch's internal parameters which controls prin
 
    Example:
    
+```lisp
      CL-REPL> (qs:config :quicklisp-verbose? T)
      CL-REPL> (qs:? "json" :q)
 
@@ -348,6 +351,8 @@ Function CONFIG customizes quicksearch's internal parameters which controls prin
        json-template
        st-json
      T
+```
+
 
 
 ##### Note:
@@ -357,12 +362,14 @@ add codes something like the following in the CL init file.
 
 In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
 
-    (ql:quickload :quicksearch)
-    (qs:config :maximum-columns-of-description 50
-               :maximum-number-of-fetching-repositories 20
-               :cache-size 2
-               :threading? nil
-               :quicklisp-verbose? t)
+```lisp
+(ql:quickload :quicksearch)
+(qs:config :maximum-columns-of-description 50
+           :maximum-number-of-fetching-repositories 20
+           :cache-size 2
+           :threading? nil
+           :quicklisp-verbose? t)
+```
 
 
 TODO
