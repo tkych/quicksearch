@@ -1,12 +1,13 @@
-;;;; Last modified : 2013-06-13 20:08:05 tkych
+;;;; Last modified : 2013-06-14 21:00:13 tkych
 
 ;; quicksearch/quicksearch.lisp
 
 ;; TODO
 ;; ----
 ;; * interactive-config
-;; * reduce consing
-;; * more efficient regex
+;; * optimization
+;;   ? reduce consing
+;;   ? more efficient regex
 
 
 ;;====================================================================
@@ -26,13 +27,15 @@
 
 (in-package #:quicksearch)
 
+(declaim (inline strip remove-tags))
+
 
 ;;--------------------------------------------------------------------
 ;; Utilities
 ;;--------------------------------------------------------------------
 
 (defun str (&rest strings)
-  "Return appended strings."
+  "Return appended string."
   (apply #'concatenate 'string strings))
 
 
@@ -40,10 +43,11 @@
   "
 MAP-REDUCE is suitable for only the case that MAPPER's cost is much expensive.
  (QUICKSEARCH uses this function for drakma:http-request)
-For each element of SEQUENCE (as an argument), MAPPER is computed with each thread,
+For each element in SEQUENCE (as an argument), MAPPER is computed with each thread,
 then the results are collected by REDUCER.
 
-Examples (inefficient but intuitive):
+Examples: (inefficient but intuitive)
+
   (map-reduce #'+
               (lambda (x) (expt x 2)) ;<- each thread computes this
               '(1 2 3 4))
@@ -78,12 +82,12 @@ Note:
 ;; Main
 ;;--------------------------------------------------------------------
 ;; <word>  ::= <string>
-;; <space> ::= <symbol>, s.t. (quicklisp | github | cliki | bitbucket)
+;; <space> ::= <symbol>, s.t. {quicklisp | github | cliki | bitbucket}
 ;; <repo>  ::= (<title> <url> <description>)
-;; <repos> ::= <list> consists of <repo>
+;; <repos> ::= ({<repo>}*)
 ;; <title> ::= <string>
 ;; <url>   ::= <string>
-;; <description> ::= <string> | NIL
+;; <description> ::= {<string> | NIL}
 
 (defvar *threading?* t)
 (defparameter *description-print?* nil)
@@ -214,34 +218,47 @@ Note:
 
 #+quicklisp  ;for build
 (progn
+
+  (defparameter *installed-prefix* "!")
   
   (defun search-quicklisp (word)
     (loop
        :for sys :in (ql-dist:provided-systems t)
        :when (or (search word (ql-dist:name sys))
                  (search word (ql-dist:name (ql-dist:release sys))))
-       :collect (list (if (and *quicklisp-verbose?* (in-local-p sys))
-                          (str "!" (ql-dist:name sys))
-                          (ql-dist:name sys))
-                      (slot-value (ql-dist:release sys)
-                                  'ql-dist::archive-url)
-                      nil)  ;(ql-dist:short-description sys)
-                            ; <=> (ql-dist:name sys)
+       :collect (list (get-title sys)
+                      (when *url-print?* (get-url sys))
+                      nil)            ;(ql-dist:short-description sys)
+                                      ; <=> (ql-dist:name sys)
        :into results
        :finally (progn
                   (when *quicklisp-verbose?* (set-version sys))
                   (return results))))
+  
+  (defun get-title (sys)
+    (if (and *quicklisp-verbose?* (installed-p sys))
+        (str *installed-prefix* (ql-dist:name sys))
+        (ql-dist:name sys)))
+
+  (defun installed-p (sys)
+    (handler-case (not (ql-dist:check-local-archive-file
+                        (ql-dist:release sys)))
+      (ql-dist:missing-local-archive () nil)))
+   
+  (defun get-url (sys)
+    (aif (ql:where-is-system (ql-dist:name sys))
+         (str (format nil "~A" it)
+              #.(format nil "~%      ")
+              (slot-value (ql-dist:release sys)
+                          'ql-dist::archive-url))
+         (slot-value (ql-dist:release sys)
+                     'ql-dist::archive-url)))
 
   (defun set-version (sys)
     (setf (get 'quicklisp :name)
           (str "Quicklisp: " (ql-dist:version (ql-dist:dist sys)))))
 
-  (defun in-local-p (sys)
-    (handler-case (not (ql-dist:check-local-archive-file
-                        (ql-dist:release sys)))
-      (ql-dist:missing-local-archive () nil)))
-
-) ;end of #+quicklisp
+  )  ;end of #+quicklisp
 
 
 ;;--------------------------------------------------------------------
@@ -249,12 +266,11 @@ Note:
 ;;--------------------------------------------------------------------
 ;; <cache> ::= <hashtable> stored previous search results.
 ;;             For non-lock threads, each space has its own cache
-;;              in symbol-plist.
+;;             in symbol-plist.
 ;;             max-size = *cache-size* + 1
-;;             (key, val) = (<word>, <repos>) | (:history, <history>)
-;; <histroy> ::= <list> consists of <word>, use as queue.
-;;               max-size = *cache-size*
-;;               front one is the most old, last one is the most new.
+;;             [key, val] = {[<word>, <repos>] | [:history, <history>]}
+;; <histroy> ::= ({<word>}*), max-length = *cache-size*, using as queue.
+;;               The front one is the most old, last one is the most new.
 
 (defparameter *cache-size* 4)
 
@@ -522,12 +538,11 @@ Note:
 ;; !! TODO !!
 ;; ==========
 ;; * interactive-config
-;; * ?! quicklisp-verbose? -> quicklisp-verbose?
 
 (defun config (&key ((:maximum-columns-of-description max-cols)
-                     80 max-cols-supplied?)
+                                        80  max-cols-supplied?)
                     ((:maximum-number-of-fetching-repositories max-repos)
-                     50 max-repos-supplied?)
+                                        50  max-repos-supplied?)
                     (cache-size         4   cache-size-supplied?)
                     (clear-cache?       nil clear-cache-supplied?)
                     (threading?         t   threading-supplied?)
@@ -588,6 +603,7 @@ Note:
    for example, add codes something like the following in the CL init file.
 
    In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
+
    (ql:quickload :quicksearch)
    (qs:config :maximum-columns-of-description 50
               :maximum-number-of-fetching-repositories 20
@@ -757,7 +773,7 @@ Examples:
                   ((#\G #\g) (setf g t))
                   ((#\B #\b) (setf b t))
                   (t         (error "~A is unknown option." char)))))
-            ((and (integerp opt) (or (plusp opt) (zerop opt)))
+            ((and (integerp opt) (not (minusp opt)))
              (setf cut-off opt))
             (t
              (error "~S is neither keyword nor non-negative-integer." opt))))

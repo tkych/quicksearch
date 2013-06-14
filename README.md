@@ -1,4 +1,4 @@
-Last modified : 2013-06-13 20:10:47 tkych
+Last modified : 2013-06-14 21:19:36 tkych
 
 Version: 0.0.93 (alpha)
 
@@ -128,7 +128,7 @@ T
 
 ```lisp
 CL-REPL> (qs:? "crypt" :ug 4) ;<=> (qs:quicksearch "crypt"
-                              ;                    :?description nil :?url t :?cut-off 4
+                              ;                    :?url t :?cut-off 4
                               ;                    :?quicklisp nil :?cliki nil :?bitbucket nil)
 
 SEARCH-RESULTS: "crypt"
@@ -296,7 +296,7 @@ _options_ must be a non-negative integer (as Cut-Off) or-and some keywords which
 
 #### [function] CONFIG _&key_ _maximum-columns-of-description_ _maximum-number-of-fetching-repositories_ _cache-size_ _clear-cache?_ _threading?_ _quicklisp-verbose?_
 
-Function CONFIG customizes quicksearch's internal parameters which controls printing, fetching or caching.
+Function CONFIG customizes printing, fetching or caching.
 
 
 ##### Keywords:
