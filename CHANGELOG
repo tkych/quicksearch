@@ -1,9 +1,13 @@
-Last modified : 2013-06-13 18:24:59 tkych
+Last modified : 2013-06-21 21:15:09 tkych
 
 
 ======================================================================
  Change Log for Quicksearch
 ======================================================================
+
+Version 0.1.00 (beta)
+2013-06-21
+Modify  : github-search (advanced search -> api-v3)
 
 Version 0.0.93 (alpha)
 2013-06-13
@@ -16,7 +20,7 @@ Add     : non-threading search.
 
 Version 0.0.91 (alpha)
 2013-06-10
-Refactoring: threading, cache, abbreviation wrapper, etc.
+Refactor: threading, cache, abbreviation wrapper, etc.
 Initial Release
 
 Version 0.0.00

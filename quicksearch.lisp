@@ -1,13 +1,6 @@
-;;;; Last modified : 2013-06-14 21:00:13 tkych
+;;;; Last modified : 2013-06-21 21:17:48 tkych
 
 ;; quicksearch/quicksearch.lisp
-
-;; TODO
-;; ----
-;; * interactive-config
-;; * optimization
-;;   ? reduce consing
-;;   ? more efficient regex
 
 
 ;;====================================================================
@@ -84,7 +77,7 @@ Note:
 ;; <word>  ::= <string>
 ;; <space> ::= <symbol>, s.t. {quicklisp | github | cliki | bitbucket}
 ;; <repo>  ::= (<title> <url> <description>)
-;; <repos> ::= ({<repo>}*)
+;; <repos> ::= (<repo>*)
 ;; <title> ::= <string>
 ;; <url>   ::= <string>
 ;; <description> ::= {<string> | NIL}
@@ -121,6 +114,10 @@ Note:
         Quicklisp-search for \"foo\" OR \"bar\",
         Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\".
 "
+  (check-type search-word (or string symbol))
+  (check-type ?web boolean) (check-type ?description boolean) (check-type ?url boolean)
+  (check-type ?cut-off (integer 1 *)) (check-type ?quicklisp boolean) (check-type ?cliki boolean)
+  (check-type ?github boolean) (check-type ?bitbucket boolean)
   (let ((*url-print?* ?url)
         (*description-print?* ?description)
         (*cut-off* ?cut-off)
@@ -197,9 +194,17 @@ Note:
 ;; for generate query
 (setf (get 'cliki :query-format)
       "http://www.cliki.net/site/search?query=~A")
+
+;; github api-v3 search
 (setf (get 'github :query-format)
-      "https://github.com/search?q=~A~
-       &type=Repositories&ref=advsearch&l=Common+Lisp")
+      "https://api.github.com/legacy/repos/search/~A~
+       ?language=Common%20Lisp")
+
+;; github advanced search
+;; (setf (get 'github :query-format)
+;;       "https://github.com/search?q=~A~
+;;        &type=Repositories&ref=advsearch&l=Common+Lisp")
+
 (setf (get 'bitbucket :query-format)
       "https://bitbucket.org/repo/all/relevance?name=~A~
        &language=common+lisp")
@@ -269,7 +274,7 @@ Note:
 ;;             in symbol-plist.
 ;;             max-size = *cache-size* + 1
 ;;             [key, val] = {[<word>, <repos>] | [:history, <history>]}
-;; <histroy> ::= ({<word>}*), max-length = *cache-size*, using as queue.
+;; <histroy> ::= (<word>*), max-length = *cache-size*, using as queue.
 ;;               The front one is the most old, last one is the most new.
 
 (defparameter *cache-size* 4)
@@ -341,9 +346,17 @@ Note:
 
 
 ;;--------------------------------------
+;; github api-v3 search
 (defun gen-query (word space)
   (format nil (get space :query-format)
-          (nsubstitute #\+ #\Space word :test #'char=)))
+          (if (eq space 'github)
+              (do-urlencode:urlencode word)
+              (nsubstitute #\+ #\Space word :test #'char=))))
+
+;; github advanced search
+;; (defun gen-query (word space)
+;;   (format nil (get space :query-format)
+;;           (nsubstitute #\+ #\Space word :test #'char=)))
 
 (defun fetch (query space)
   (apply #'drakma:http-request query (get space :drakma-options)))
@@ -377,23 +390,34 @@ Note:
                              (let ((desc (strip (remove-tags description))))
                                (when (string/= "" desc) desc)))))))))
 
+;; github api-v3 search
 (defun extract-github-repos (response)
-  (let* ((results (ppcre:scan-to-strings
-                   "(?s)<ul class=\"repolist js-repo-list\">(.+<!-- /.body -->)"
-                   response))
-         (repos (ppcre:all-matches-as-strings
-                 "(?s)<h3>(.+?)</p>"
-                 results)))
-    (when repos
-      (iter (for repo :in repos)
-            (ppcre:register-groups-bind (url title)
-                ("(?s)<h3>.+?<a href=\"/(.+?)\">.+?/(.+?)</a>" repo)
-              (collect
-                  (list (ppcre:regex-replace-all "</?em>" title "")
-                        url
-                        (ppcre:register-groups-bind (description)
-                            ("(?s)<p class=\"description\">(.+?)</p>" repo)
-                          (strip (remove-tags description))))))))))
+  (let* ((jason (yason:parse (flexi-streams:octets-to-string
+                              response :external-format :utf-8))))
+    (loop :for repo :in (gethash "repositories" jason)
+          :unless (gethash "fork" repo)   ;only master is displayed
+          :collect (list (gethash "name" repo)
+                         (gethash "url" repo)
+                         (gethash "description" repo)))))
+
+;; github advanced search
+;; (defun extract-github-repos (response)
+;;   (let* ((results (ppcre:scan-to-strings
+;;                    "(?s)<ul class=\"repolist js-repo-list\">(.+<!-- /.body -->)"
+;;                    response))
+;;          (repos (ppcre:all-matches-as-strings
+;;                  "(?s)<h3>(.+?)</p>"
+;;                  results)))
+;;     (when repos
+;;       (iter (for repo :in repos)
+;;             (ppcre:register-groups-bind (url title)
+;;                 ("(?s)<h3>.+?<a href=\"/(.+?)\">.+?/(.+?)</a>" repo)
+;;               (collect
+;;                   (list (ppcre:regex-replace-all "</?em>" title "")
+;;                         url
+;;                         (ppcre:register-groups-bind (description)
+;;                             ("(?s)<p class=\"description\">(.+?)</p>" repo)
+;;                           (strip (remove-tags description))))))))))
 
 (defun extract-bitbucket-repos (response)
   (let* ((results (ppcre:scan-to-strings
@@ -439,20 +463,26 @@ Note:
       (subseq rest-urls
               0 (min (max-num-next-pages) (length rest-urls))))))
 
+;; github api-v3 search
 (defun extract-github-next-page-url (response)
-  (let ((urls nil)
-        (pagination
-         (ppcre:scan-to-strings
-          "(?s)<div class=\"pagination\"(.+?)</div>" response)))
-    (ppcre:do-register-groups (next-url)
-        ("<a href=\"(.+?)\"( (class|rel).+?)?>" pagination)
-      (push (format nil "https://github.com~A"
-                    (html-entities:decode-entities next-url))
-            urls))
-    (let ((rest-urls (nreverse (rest urls)))) ;first and last is the same.
-      ;; (print rest-urls) ;for dbg
-      (subseq rest-urls
-              0 (min (max-num-next-pages) (length rest-urls))))))
+  (declare (ignore response))
+  nil)
+
+;; for github advanced search
+;; (defun extract-github-next-page-url (response)
+;;   (let ((urls nil)
+;;         (pagination
+;;          (ppcre:scan-to-strings
+;;           "(?s)<div class=\"pagination\"(.+?)</div>" response)))
+;;     (ppcre:do-register-groups (next-url)
+;;         ("<a href=\"(.+?)\"( (class|rel).+?)?>" pagination)
+;;       (push (format nil "https://github.com~A"
+;;                     (html-entities:decode-entities next-url))
+;;             urls))
+;;     (let ((rest-urls (nreverse (rest urls)))) ;first and last is the same.
+;;       ;; (print rest-urls) ;for dbg
+;;       (subseq rest-urls
+;;               0 (min (max-num-next-pages) (length rest-urls))))))
 
 (defun extract-bitbucket-next-page-url (response)
   (let ((urls nil)
@@ -535,9 +565,6 @@ Note:
 ;;--------------------------------------------------------------------
 ;; Configuration for Quicksearch
 ;;--------------------------------------------------------------------
-;; !! TODO !!
-;; ==========
-;; * interactive-config
 
 (defun config (&key ((:maximum-columns-of-description max-cols)
                                         80  max-cols-supplied?)
@@ -548,7 +575,7 @@ Note:
                     (threading?         t   threading-supplied?)
                     (quicklisp-verbose? nil quicklisp-verbose-supplied?))
   "
-Function CONFIG customizes quicksearch's internal parameters which controls printing, fetching or caching.
+Function CONFIG customizes printing, fetching or caching.
 
 Keywords:
  * :MAXIMUM-COLUMNS-OF-DESCRIPTION (default 80)
@@ -585,13 +612,13 @@ Keywords:
    If value is T, then outputs version of quicklisp and whether library had installed your local.
 
    Example:
-     CL-REPL> (qs:config :QUICKLISP-VERBOSE? T)
+     CL-REPL> (qs:config :QUICKLISP-VERBOSE? t)
      CL-REPL> (qs:? \"json\" :q)
 
      SEARCH-RESULTS: \"json\"
 
       Quicklisp: 2013-04-20   ;<- quicklisp version
-       !cl-json               ;<- if library has installed via quicklisp, print prefix \"!\".
+       !cl-json               ;<- if library has been installed via quicklisp, print prefix \"!\".
        !cl-json.test
        com.gigamonkeys.json   ;<- if not, none.
        json-template
@@ -614,7 +641,7 @@ Note:
   (if (not (or max-cols-supplied?  max-repos-supplied?
                cache-size-supplied? clear-cache-supplied?
                threading-supplied? quicklisp-verbose-supplied?))
-      (error "At most one keyword must be supplied."); !? (interactive-config)
+      (error "At most one keyword must be supplied.")
       (progn
         (when max-cols-supplied?
           (if (and (integerp max-cols)
@@ -625,7 +652,8 @@ Note:
                         *max-num-description-columns*)
                 (clear-cache)
                 t)
-              (error "~S is not plus integer." max-cols)))
+              (error "~S is not plus integer above ~D."
+                     max-cols *description-indent-num*)))
         (when max-repos-supplied?
           (if (and (integerp max-repos)
                    (plusp max-repos))
@@ -674,47 +702,6 @@ Note:
         )))
 
 
-;; (defun interactive-config ()
-;;   (interactive-config-max-cols)
-;;   (terpri)
-;;   (interactive-config-max-repos)
-;;   (terpri)
-;;   (interactive-config-cache-size)
-;;   (terpri)
-;;   (interactive-config-clear-cache)
-;;   t)
-
-;; (defun interactive-config-max-cols  ()
-;;   (format t "~&1. Max colums of description (current is ~A): "
-;;           *max-num-description-columns*)
-;;   (let ((input (parse-integer (read-line) :junk-allowed t)))
-;;     (when (and (integerp input)
-;;                (< *description-indent-num* input))
-;;       (setf *max-num-description-columns* input))
-;;     (format t "Current max colums of description: ~D"
-;;             *max-num-description-columns*)))
-
-;; (defun interactive-config-max-repos ()
-;;   (format t "~&2. Max number of fetching repos (current is ~A): "
-;;           *max-num-web-search-results*)
-;;   (let ((input (parse-integer (read-line) :junk-allowed t)))
-;;     (if (and (integerp input) (plusp input))
-;;         (progn
-;;           (setf *max-num-web-search-results* input)
-;;           (format t "Current max number of fetching repos: ~D"
-;;                   *max-num-web-search-results*))
-;;         (progn
-;;           (format t "~&Please input plus integer!")
-;;           (interactive-config-max-repos)))))
-
-;; (defun interactive-config-cache-size ()
-;;   *cache-size*)
-
-;; (defun interactive-config-clear-cache ()
-;;   (when (y-or-n-p "~&3. Clear cache? (y/n): ")
-;;     (clear-cache)))
-
-
 ;;--------------------------------------------------------------------
 ;; Abbreviation for Quicksearch
 ;;--------------------------------------------------------------------
@@ -723,7 +710,7 @@ Note:
   "
 ? is abbreviation wrapper for function QUICKSEARCH.
 SEARCH-WORD must be a string, number or symbol.
-OPTIONS must be a non-negative integer (as Cut-Off) or-and some keywords which consists of some Option-Chars.
+OPTIONS must be a non-negative integer (as Cut-Off) and/or some keywords which consists of some Option-Chars.
 
 Options:
  * Cut-Off:

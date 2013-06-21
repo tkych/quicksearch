@@ -1,6 +1,6 @@
-Last modified : 2013-06-14 21:19:36 tkych
+Last modified : 2013-06-21 21:13:24 tkych
 
-Version: 0.0.93 (alpha)
+Version: 0.1.00 (beta)
 
 
 Quicksearch: Search CL Library, Quickly
@@ -18,21 +18,24 @@ The wrapper function ? is abbreviation for QUICKSEARCH.
 Depends-on
 ----------
 
+ * [bordeaux-threads](http://common-lisp.net/project/bordeaux-threads/)
  * [iterate](http://common-lisp.net/project/iterate/)
  * [alexandria](http://common-lisp.net/project/alexandria/)
  * [anaphora](http://common-lisp.net/project/anaphora/)
  * [cl-ppcre](http://weitz.de/cl-ppcre/)
  * [drakma](http://weitz.de/drakma/)
  * [html-entities](https://code.google.com/p/html-entities/)
- * [bordeaux-threads](http://common-lisp.net/project/bordeaux-threads/)
-
+ * [yason](http://common-lisp.net/project/yason/)
+ * [flexi-streams](http://weitz.de/flexi-streams/)
+ * [do-urlencode](https://github.com/drdo/do-urlencode)
+ 
 
 Installation
 ------------
 
-0. SHELL>   `git clone https://github.com/tkych/quicksearch.git`
+0. SHELL$   `git clone https://github.com/tkych/quicksearch.git`
 1. CL-REPL> `(push #p"/path-to-quicksearch/quicksearch/" asdf:*central-registry*)`
-2. CL-REPL> `(ql:quickload :quicksearch)`
+2. CL-REPL> `(ql:quickload :quicksearch)` or `(asdf:load-system :quicksearch)`
 
 
 Examples
@@ -247,7 +250,7 @@ _search-word_ must be a string, number or symbol (symbol will be automatically c
 
 ? is abbreviation wrapper for function QUICKSEARCH.
 _search-word_ must be a string, number or symbol.
-_options_ must be a non-negative integer (as Cut-Off) or-and some keywords which consists of some Option-Chars.
+_options_ must be a non-negative integer (as Cut-Off) and/or some keywords which consists of some Option-Chars.
 
 
 ##### Examples:
