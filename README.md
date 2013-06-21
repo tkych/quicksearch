@@ -1,4 +1,4 @@
-Last modified : 2013-06-21 21:13:24 tkych
+Last modified : 2013-06-21 22:37:55 tkych
 
 Version: 0.1.00 (beta)
 
@@ -211,8 +211,8 @@ T
 
 
 
-Referece Manual
----------------
+Reference Manual
+----------------
 
 #### [function] QUICKSEARCH _search-word_ _&key_ _?web_ _?description_ _?url_ _?cut-off_ _?quicklisp_ _?cliki_ _?github_ _?bitbucket_
 
