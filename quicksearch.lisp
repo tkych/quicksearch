@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-21 21:17:48 tkych
+;;;; Last modified : 2013-06-21 22:28:02 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -188,7 +188,8 @@ Note:
 ;; for print url
 (setf (get 'quicklisp :host) "~A"
       (get 'cliki     :host) "http://www.cliki.net~A"
-      (get 'github    :host) "https://github.com/~A"
+      (get 'github    :host) "~A"       ;api-v3
+      ;; (get 'github    :host) "https://github.com/~A" ;advanced
       (get 'bitbucket :host) "https://bitbucket.org~A")
 
 ;; for generate query
