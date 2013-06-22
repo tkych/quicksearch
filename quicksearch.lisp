@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-21 22:28:02 tkych
+;;;; Last modified : 2013-06-22 09:42:18 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -399,7 +399,9 @@ Note:
           :unless (gethash "fork" repo)   ;only master is displayed
           :collect (list (gethash "name" repo)
                          (gethash "url" repo)
-                         (gethash "description" repo)))))
+                         (let ((desc (gethash "description" repo)))
+                           (unless (string= "" desc)
+                             desc))))))
 
 ;; github advanced search
 ;; (defun extract-github-repos (response)
