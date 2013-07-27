@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-06-22 09:42:18 tkych
+;;;; Last modified : 2013-07-27 14:49:33 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -16,7 +16,8 @@
                 #:aif #:awhen #:it)
   (:export #:quicksearch
            #:?
-           #:config))
+           #:config
+           #:*user-agent*))
 
 (in-package #:quicksearch)
 
@@ -82,6 +83,22 @@ Note:
 ;; <url>   ::= <string>
 ;; <description> ::= {<string> | NIL}
 
+(defparameter *quicksearch-version* "0.1.01")
+(defparameter *quicksearch-webpage*
+  "https://github.com/tkych/quicksearch")
+
+(defparameter *user-agent*
+  (format nil "Quicksearch/~A (~A ~A; ~A; ~A; ~A)"
+          *quicksearch-version*
+          (lisp-implementation-type)
+          (lisp-implementation-version)
+          (software-type)
+          (software-version)
+          *quicksearch-webpage*)
+  "This value tells the server who is requested (i.e. User-Agent header value).
+If you are embedding quicksearch in a larger application, you should
+change the value of *user-agent* to your application name and URL.")
+
 (defvar *threading?* t)
 (defparameter *description-print?* nil)
 (defparameter *url-print?* nil)
@@ -91,8 +108,7 @@ Note:
 (defun quicksearch (search-word
                     &key (?web t) (?description nil) (?url nil) (?cut-off 50)
                          (?quicklisp t) (?cliki t) (?github t) (?bitbucket t))
-  "
-Search for CL projects with SEARCH-WORD in Quicklisp, Cliki, GitHub and BitBucket.
+  "Search for CL projects with SEARCH-WORD in Quicklisp, Cliki, GitHub and BitBucket.
 SEARCH-WORD must be a string, number or symbol (symbol will be automatically converted into downcase-string).
 
 Keywords:
@@ -112,8 +128,7 @@ Note:
    whereas Cliki-search, GitHub-, BitBucket- is AND-search.
    e.g. (quicksearch \"foo bar\")
         Quicklisp-search for \"foo\" OR \"bar\",
-        Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\".
-"
+        Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\"."
   (check-type search-word (or string symbol))
   (check-type ?web boolean) (check-type ?description boolean) (check-type ?url boolean)
   (check-type ?cut-off (integer 1 *)) (check-type ?quicklisp boolean) (check-type ?cliki boolean)
@@ -126,7 +141,7 @@ Note:
         (*print-search-results?* nil)  ;no result, no print
         (threads '()))
 
-    (when (and ?web *threading?*)
+    (when (and ?web *threading?* bordeaux-threads:*supports-threads-p*)
       ;; MAP Phase
       ;; (Strictly, the following is not the MapReduce,
       ;;  but abstract model is the same if threads are equated with worker nodes.)
@@ -148,7 +163,7 @@ Note:
           (setf found? t))))
 
     (when ?web
-      (if *threading?*
+      (if (and *threading?* bordeaux-threads:*supports-threads-p*)
           (progn  ;REDUCE Phase
             ;; (print 'threading) ;for test
             (dolist (th threads) (bordeaux-threads:join-thread th))
@@ -360,7 +375,8 @@ Note:
 ;;           (nsubstitute #\+ #\Space word :test #'char=)))
 
 (defun fetch (query space)
-  (apply #'drakma:http-request query (get space :drakma-options)))
+  (apply #'drakma:http-request query
+         :user-agent *user-agent* (get space :drakma-options)))
 
 
 ;;--------------------------------------
@@ -504,7 +520,9 @@ Note:
 ;;--------------------------------------------------------------------
 
 (defparameter *max-num-description-columns* 80)
-(defparameter *description-indent-num* 6)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *description-indent-num* 6))
 
 (defun print-line (n char)
   (format t (format nil "~~~D,,,'~AA" n char) char))
@@ -570,15 +588,15 @@ Note:
 ;;--------------------------------------------------------------------
 
 (defun config (&key ((:maximum-columns-of-description max-cols)
-                                        80  max-cols-supplied?)
-                    ((:maximum-number-of-fetching-repositories max-repos)
-                                        50  max-repos-supplied?)
-                    (cache-size         4   cache-size-supplied?)
-                    (clear-cache?       nil clear-cache-supplied?)
-                    (threading?         t   threading-supplied?)
-                    (quicklisp-verbose? nil quicklisp-verbose-supplied?))
-  "
-Function CONFIG customizes printing, fetching or caching.
+                     80  max-cols-supplied?)
+                 ((:maximum-number-of-fetching-repositories max-repos)
+                  50  max-repos-supplied?)
+                 (cache-size         4   cache-size-supplied?)
+                 (clear-cache?       nil clear-cache-supplied?)
+                 (threading?         t   threading-supplied?)
+                 (quicklisp-verbose? nil quicklisp-verbose-supplied?))
+  "Function CONFIG customizes printing, fetching or caching.
+If CONFIG is called with no keyword, then it sets default values.
 
 Keywords:
  * :MAXIMUM-COLUMNS-OF-DESCRIPTION (default 80)
@@ -605,7 +623,7 @@ Keywords:
    If value is NIL, then QUICKSEARCH becomes not to use threads for searching.
 
    Note:
-     Currently in SBCL (1.1.8), threads are part of the default build on x86[-64] Linux only.
+     Currently on SBCL (1.1.8), threads are part of the default build on x86[-64] Linux only.
      Other platforms (x86[-64] Darwin (Mac OS X), x86[-64] FreeBSD, x86 SunOS (Solaris),
      and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
      For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
@@ -637,72 +655,72 @@ Note:
    (ql:quickload :quicksearch)
    (qs:config :maximum-columns-of-description 50
               :maximum-number-of-fetching-repositories 20
-              :cache-size 2
+              :cache-size 10
               :threading? nil
-              :quicklisp-verbose? t)
-"
-  (if (not (or max-cols-supplied?  max-repos-supplied?
-               cache-size-supplied? clear-cache-supplied?
-               threading-supplied? quicklisp-verbose-supplied?))
-      (error "At most one keyword must be supplied.")
-      (progn
-        (when max-cols-supplied?
-          (if (and (integerp max-cols)
-                   (< *description-indent-num* max-cols))
-              (progn
-                (setf *max-num-description-columns* max-cols)
-                (format t "~&Current maximum columns of description: ~D"
-                        *max-num-description-columns*)
-                (clear-cache)
-                t)
-              (error "~S is not plus integer above ~D."
-                     max-cols *description-indent-num*)))
-        (when max-repos-supplied?
-          (if (and (integerp max-repos)
-                   (plusp max-repos))
-              (progn
-                (setf *max-num-web-search-results* max-repos)
-                (format t "~&Current maximum number of fetching repositories: ~D"
-                        *max-num-web-search-results*)
-                t)
-              (error "~S is not plus integer." max-repos)))
-        (when cache-size-supplied?
-          (if (and (integerp cache-size)
-                   (<= 0 cache-size))
-              (progn
-                (setf *cache-size* cache-size)
-                (make-cache)
-                (format t "~&Current cache size: ~D"  *cache-size*)
-                t)
-              (error "~S is not plus integer." cache-size)))
-        (when clear-cache-supplied?
-          (if (and clear-cache? (typep clear-cache? 'boolean))
-              (progn
-                (clear-cache)
-                (format t "All caches cleaned.")
-                t)
-              (error "~S is not boolean." clear-cache?)))
-        (when threading-supplied?
-          (if (typep threading? 'boolean)
-              (progn
-                (setf *threading?* threading?)
-                (format t "~&Using threads for searching: ~S" threading?)
-                t)
-              (error "~S is not boolean." threading?)))
-        (when quicklisp-verbose-supplied?
-          (if (typep quicklisp-verbose? 'boolean)
-              (if quicklisp-verbose?
-                  (progn
-                    (setf *quicklisp-verbose?* t)
-                    (format t "~&Quicklisp verbose: T")
-                    t)
-                  (progn
-                    (setf *quicklisp-verbose?*  nil
-                          (get 'quicklisp :name) "Quicklisp")
-                    (format t "~&Quicklisp verbose: NIL")
-                    t))
-              (error "~S is not boolean." quicklisp-verbose?)))
-        )))
+              :quicklisp-verbose? t)"
+  (let ((result nil))
+    (if (not (or max-cols-supplied?  max-repos-supplied?
+                 cache-size-supplied? clear-cache-supplied?
+                 threading-supplied? quicklisp-verbose-supplied?))
+        (progn
+          (setf *max-num-description-columns* 80
+                *max-num-web-search-results*  50
+                *cache-size*          4
+                *threading?*          t
+                *quicklisp-verbose?*  nil)
+          (make-cache)
+          (format t "~&Default Setting.")
+          (setf result t))
+        (progn
+          
+          (when max-cols-supplied?
+            (check-type max-cols (not (mod #.(1+ *description-indent-num*))))
+            (setf *max-num-description-columns* max-cols)
+            (format t "~&Current maximum columns of description: ~D"
+                    *max-num-description-columns*)
+            (clear-cache)
+            (setf result t))
+
+          (when max-repos-supplied?
+            (check-type max-repos-supplied? (integer 1 *))
+            (setf *max-num-web-search-results* max-repos)
+            (format t "~&Current maximum number of fetching repositories: ~D"
+                    *max-num-web-search-results*)
+            (setf result t))
+          
+          (when cache-size-supplied?
+            (check-type cache-size (integer 0 *))
+            (setf *cache-size* cache-size)
+            (make-cache)
+            (format t "~&Current cache size: ~D"  *cache-size*)
+            (setf result t))
+          
+          (when clear-cache-supplied?
+            (check-type clear-cache? boolean)
+            (when clear-cache?
+              (clear-cache)
+              (format t "All caches cleaned.")
+              (setf result t)))
+          
+          (when threading-supplied?
+            (check-type threading? boolean)
+            (if (and threading? (not bordeaux-threads:*supports-threads-p*))
+                (warn "Your CL system does not support threading.")
+                (progn
+                  (setf *threading?* threading?)
+                  (format t "~&Using threads for searching: ~S" threading?)
+                  (setf result t))))
+          
+          (when quicklisp-verbose-supplied?
+            (check-type quicklisp-verbose? boolean)
+            (setf *quicklisp-verbose?* quicklisp-verbose?)
+            (format t "~&Quicklisp verbose: ~A" quicklisp-verbose?)
+            (unless quicklisp-verbose?
+              (setf (get 'quicklisp :name) "Quicklisp"))
+            (setf result t))
+          ))
+
+    result))
 
 
 ;;--------------------------------------------------------------------
@@ -710,8 +728,7 @@ Note:
 ;;--------------------------------------------------------------------
 
 (defun ? (search-word &rest options)
-  "
-? is abbreviation wrapper for function QUICKSEARCH.
+  "? is abbreviation wrapper for function QUICKSEARCH.
 SEARCH-WORD must be a string, number or symbol.
 OPTIONS must be a non-negative integer (as Cut-Off) and/or some keywords which consists of some Option-Chars.
 
@@ -748,8 +765,7 @@ Examples:
   (? \"crypt\" 20 :g :d)
   <=>
   (quicksearch \"crypt\" :?description T :?url nil :?cut-off 20
-                       :?quicklisp nil :?cliki nil :?github T :?bitbucket nil)
-"
+                       :?quicklisp nil :?cliki nil :?github T :?bitbucket nil)"
   (let ((cut-off 50)
         (d nil) (u nil) (q nil) (c nil) (g nil) (b nil))
     (dolist (opt options)

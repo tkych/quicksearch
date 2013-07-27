@@ -1,6 +1,6 @@
-Last modified : 2013-06-23 19:23:47 tkych
+Last modified : 2013-07-27 14:46:23 tkych
 
-Version: 0.1.00 (beta)
+Version: 0.01.01 (beta)
 
 
 Quicksearch: Search CL Library, Quickly
@@ -356,6 +356,13 @@ In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
                :cache-size 2
                :threading? nil
                :quicklisp-verbose? t)
+
+
+#### [special variable] \*USER-AGENT\*
+
+\*user-agent\* tells the server who is requested (i.e. User-Agent header value).
+If you are embedding quicksearch in a larger application, you should
+change the value of \*user-agent\* to your application name and URL.
 
 
 TODO

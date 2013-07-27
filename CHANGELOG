@@ -1,9 +1,14 @@
-Last modified : 2013-06-21 21:15:09 tkych
+Last modified : 2013-07-27 14:40:02 tkych
 
 
 ======================================================================
  Change Log for Quicksearch
 ======================================================================
+
+Version 0.1.01 (beta)
+2013-07-27
+Refactor: CONFIG
+ADD     : *USER-AGENT*, threading support check.
 
 Version 0.1.00 (beta)
 2013-06-21
