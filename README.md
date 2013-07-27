@@ -3,8 +3,8 @@ Last modified : 2013-07-27 14:46:23 tkych
 Version: 0.01.01 (beta)
 
 
-Quicksearch: Search CL Library, Quickly
-=======================================
+Quicksearch
+===========
 
 Quicksearch is a search-engine-interface for Common Lisp.
 The goal of Quicksearch is to find the CL library quickly.
