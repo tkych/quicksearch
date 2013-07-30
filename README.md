@@ -1,4 +1,4 @@
-Last modified : 2013-07-27 14:46:23 tkych
+Last modified : 2013-07-30 20:00:44 tkych
 
 Version: 0.01.01 (beta)
 
@@ -328,7 +328,7 @@ Function CONFIG customizes printing, fetching or caching.
    If value is T, then outputs version of quicklisp and whether library had installed your local.
 
    Example:
-
+```
      CL-REPL> (qs:config :quicklisp-verbose? T)
      CL-REPL> (qs:? "json" :q)
 
@@ -341,6 +341,7 @@ Function CONFIG customizes printing, fetching or caching.
        json-template
        st-json
      T
+```
 
 
 ##### Note:
