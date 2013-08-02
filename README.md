@@ -1,4 +1,4 @@
-Last modified : 2013-07-30 20:00:44 tkych
+Last modified : 2013-08-02 21:08:33 tkych
 
 Version: 0.01.01 (beta)
 
@@ -33,9 +33,16 @@ Depends-on
 Installation
 ------------
 
-0. SHELL$   `git clone https://github.com/tkych/quicksearch.git`
-1. CL-REPL> `(push #p"/path-to-quicksearch/quicksearch/" asdf:*central-registry*)`
-2. CL-REPL> `(ql:quickload :quicksearch)` or `(asdf:load-system :quicksearch)`
+##### Auto:
+
+ 0. CL-REPL> `(ql:quickload :quicksearch)`
+
+
+##### Manual:
+
+ 0. SHELL$   `git clone https://github.com/tkych/quicksearch.git`
+ 1. CL-REPL> `(push #p"/path-to-quicksearch/quicksearch/" asdf:*central-registry*)`
+ 2. CL-REPL> `(ql:quickload :quicksearch)` or `(asdf:load-system :quicksearch)`
 
 
 Examples
