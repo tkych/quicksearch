@@ -1,4 +1,4 @@
-Last modified : 2013-08-02 21:08:33 tkych
+Last modified : 2013-08-02 21:13:57 tkych
 
 Version: 0.01.01 (beta)
 
@@ -10,9 +10,9 @@ Quicksearch is a search-engine-interface for Common Lisp.
 The goal of Quicksearch is to find the CL library quickly.
 For example, if you will find the library about json, just type `(qs:? 'json)` at REPL.
 
-The function QUICKSEARCH searches for CL projects in Quicklisp, Cliki,
+The function `quicksearch` searches for CL projects in Quicklisp, Cliki,
 GitHub and BitBucket, then outputs results in REPL.
-The wrapper function ? is abbreviation for QUICKSEARCH.
+The function `?` is abbreviation wrapper for `quicksearch`.
 
 
 Depends-on
