@@ -1,6 +1,6 @@
-Last modified : 2013-08-02 21:13:57 tkych
+Last modified : 2013-08-08 19:52:26 tkych
 
-Version: 0.01.01 (beta)
+Version: 0.01.02 (beta)
 
 
 Quicksearch

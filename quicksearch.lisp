@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-07-27 14:49:33 tkych
+;;;; Last modified : 2013-08-08 19:53:51 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -29,9 +29,10 @@
 ;;--------------------------------------------------------------------
 
 (defun str (&rest strings)
-  "Return appended string."
-  (apply #'concatenate 'string strings))
-
+  "Concatenates strings"
+  (with-output-to-string (s)
+    (dolist (string strings)
+      (write-string string s))))
 
 (defun map-reduce (reducer mapper sequence)
   "
@@ -83,7 +84,7 @@ Note:
 ;; <url>   ::= <string>
 ;; <description> ::= {<string> | NIL}
 
-(defparameter *quicksearch-version* "0.1.01")
+(defparameter *quicksearch-version* "0.1.02")
 (defparameter *quicksearch-webpage*
   "https://github.com/tkych/quicksearch")
 
@@ -129,10 +130,17 @@ Note:
    e.g. (quicksearch \"foo bar\")
         Quicklisp-search for \"foo\" OR \"bar\",
         Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\"."
-  (check-type search-word (or string symbol))
-  (check-type ?web boolean) (check-type ?description boolean) (check-type ?url boolean)
-  (check-type ?cut-off (integer 1 *)) (check-type ?quicklisp boolean) (check-type ?cliki boolean)
-  (check-type ?github boolean) (check-type ?bitbucket boolean)
+  
+  (check-type search-word  (or string symbol))
+  (check-type ?web         boolean)
+  (check-type ?description boolean)
+  (check-type ?url         boolean)
+  (check-type ?cut-off     (integer 1 *))
+  (check-type ?quicklisp   boolean)
+  (check-type ?cliki       boolean)
+  (check-type ?github      boolean)
+  (check-type ?bitbucket   boolean)
+  
   (let ((*url-print?* ?url)
         (*description-print?* ?description)
         (*cut-off* ?cut-off)
@@ -141,12 +149,15 @@ Note:
         (*print-search-results?* nil)  ;no result, no print
         (threads '()))
 
+    (dolist (space '(cliki github bitbucket))
+      (setf (get space :error-report) nil))
+
     (when (and ?web *threading?* bordeaux-threads:*supports-threads-p*)
-      ;; MAP Phase
+      ;; MAP Phase:
       ;; (Strictly, the following is not the MapReduce,
       ;;  but abstract model is the same if threads are equated with worker nodes.)
       (let ((drakma:*drakma-default-external-format* :utf-8))
-        ;; (print 'threading) ;for test
+        ;; (print 'threading) ;for DBG
         (loop :for space   :in '(cliki github bitbucket)
               :for search? :in (list ?cliki ?github ?bitbucket) :do
            (when (and search? (not (in-cache-p word space)))
@@ -159,33 +170,48 @@ Note:
       ;; quicklisp-search is OR-search
       (dolist (w (ppcre:split " " word))
         (awhen (search-quicklisp w)
-          (print-results word it 'quicklisp)
+          (once-only-print-search-results word)
+          (print-results it 'quicklisp)
           (setf found? t))))
 
     (when ?web
       (if (and *threading?* bordeaux-threads:*supports-threads-p*)
-          (progn  ;REDUCE Phase
-            ;; (print 'threading) ;for test
+          (progn  ;REDUCE Phase:
+            ;; (print 'threading) ;for DBG
             (dolist (th threads) (bordeaux-threads:join-thread th))
             (loop
                :for space   :in '(cliki github bitbucket)
                :for search? :in (list ?cliki ?github ?bitbucket) :do
-               (awhen (and search? (search-cache word space))
-                 (print-results word it space)
-                 (setf found? t))))
+               (aif (get space :error-report)
+                    (progn
+                      (once-only-print-search-results word)
+                      (princ it))
+                    (let ((serch-result (and search? (search-cache word space))))
+                      (when serch-result
+                        (once-only-print-search-results word)
+                        (print-results serch-result space)
+                        (setf found? t))))))
+          
           (loop  ;not using threads
              :for space   :in '(cliki github bitbucket)
              :for search? :in (list ?cliki ?github ?bitbucket) :do
              (when search?
-               ;; (print 'non-threading) ;for test
+               ;; (print 'non-threading) ;for DBG
                (multiple-value-bind (repos stored?) (search-cache word space)
                  (if stored?
                      (progn
-                       (print-results word repos space)
+                       (once-only-print-search-results word)
+                       (print-results repos space)
                        (setf found? t))
-                     (awhen (search-web word space)
-                       (print-results word it space)
-                       (setf found? t))))))))
+                     (let ((serch-result (search-web word space)))
+                       (aif (get space :error-report)
+                            (progn
+                              (once-only-print-search-results word)
+                              (princ it))
+                            (when serch-result
+                              (once-only-print-search-results word)
+                              (print-results serch-result space)
+                              (setf found? t))))))))))
 
     found?))
 
@@ -265,10 +291,15 @@ Note:
     (handler-case (not (ql-dist:check-local-archive-file
                         (ql-dist:release sys)))
       (ql-dist:missing-local-archive () nil)))
-   
+
   (defun get-url (sys)
-    (aif (ql:where-is-system (ql-dist:name sys))
-         (str (format nil "~A" it)
+    ;; Memo: 2013-08-08 by tkych
+    ;; Don't exchange the following conditional-clause
+    ;; (ql:where-is-system (ql-dist:name sys)).
+    ;; ql:where-is-system contains asdf:find-system, and
+    ;; (asdf:find-system "asdf-encodings") causes disaster.
+    (aif (nth-value 2 (asdf:locate-system (ql-dist:name sys)))
+         (str (directory-namestring it)
               #.(format nil "~%      ")
               (slot-value (ql-dist:release sys)
                           'ql-dist::archive-url))
@@ -338,7 +369,16 @@ Note:
 ;; 5. RETURN repos
 
 (defun search-web (word space)
-  (let* ((response (fetch (gen-query word space) space))
+  (let* ((response (handler-case
+                       (fetch (gen-query word space) space)
+                     (error (c)
+                       (RETURN-FROM search-web
+                         (progn
+                           (setf (get space :error-report)
+                                 (format nil "~2& ~A~%  Fetch Fail [~S]~%"
+                                         (get space :name)
+                                         (class-name (class-of c))))
+                           nil)))))
          (repos    (extract-repos response space)))
     (awhen (extract-next-page-url response space)
       (if *threading?*
@@ -543,12 +583,14 @@ Note:
   (when (or *description-print?* *url-print?*)
     (format t " ") (print-line (length (get space :name)) #\-)))
 
-(defun print-results (word repos space)
+(defun once-only-print-search-results (word)
+  ;; only when search-result has not printed yet, print it.
+  (unless *print-search-results?*
+    (print-search-results word)
+    (setf *print-search-results?* t)))
+
+(defun print-results (repos space)
   (when repos
-    ;; only when search-result has not printed yet, print it.
-    (unless *print-search-results?*
-      (print-search-results word)
-      (setf *print-search-results?* t))
     (print-space space)
     (loop :for (title url desc) :in repos
           :repeat *cut-off* :do
