@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-08 19:53:51 tkych
+;;;; Last modified : 2013-08-08 21:05:17 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -182,15 +182,16 @@ Note:
             (loop
                :for space   :in '(cliki github bitbucket)
                :for search? :in (list ?cliki ?github ?bitbucket) :do
-               (aif (get space :error-report)
-                    (progn
-                      (once-only-print-search-results word)
-                      (princ it))
-                    (let ((serch-result (and search? (search-cache word space))))
-                      (when serch-result
+               (when search?
+                 (aif (get space :error-report)
+                      (progn
                         (once-only-print-search-results word)
-                        (print-results serch-result space)
-                        (setf found? t))))))
+                        (princ it))
+                      (let ((serch-result (search-cache word space)))
+                        (when serch-result
+                          (once-only-print-search-results word)
+                          (print-results serch-result space)
+                          (setf found? t)))))))
           
           (loop  ;not using threads
              :for space   :in '(cliki github bitbucket)
@@ -203,6 +204,7 @@ Note:
                        (once-only-print-search-results word)
                        (print-results repos space)
                        (setf found? t))
+                     ;; fatch before get error-report
                      (let ((serch-result (search-web word space)))
                        (aif (get space :error-report)
                             (progn
