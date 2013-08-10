@@ -1,4 +1,4 @@
-Last modified : 2013-08-08 19:51:41 tkych
+Last modified : 2013-08-10 22:35:15 tkych
 
 
 ======================================================================
@@ -8,10 +8,11 @@ Last modified : 2013-08-08 19:51:41 tkych
 Version 0.1.02 (beta)
 2013-08-08
 Fix Bug: If QUICKSEARCH outputs the url for a system which is explicitly
-       : depend on asdf, it might draw a disaster, e.g. (qs:? "asdf-encodings" :u).
+       : depend on asdf, it might reload asdf, e.g. (qs:? "asdf-encodings" :u).
        : Probably asdf:find-system (via ql:where-is-system) is cause of this.
        : (it is not a bug for asdf:find-system, feature)
        : Prescription: ql:where-is-system -> asdf:locate-system.
+       : Added 2013-08-10: This bug could occur if asdf is not the latest version.
 Added  : error handling for fetching fail,
 Kaizen : util STR.
 
