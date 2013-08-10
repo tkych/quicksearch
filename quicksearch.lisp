@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-08 21:05:17 tkych
+;;;; Last modified : 2013-08-10 09:20:49 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -377,7 +377,7 @@ Note:
                        (RETURN-FROM search-web
                          (progn
                            (setf (get space :error-report)
-                                 (format nil "~2& ~A~%  Fetch Fail [~S]~%"
+                                 (format nil "~2& ~A~%  Failed [~S]~%"
                                          (get space :name)
                                          (class-name (class-of c))))
                            nil)))))
