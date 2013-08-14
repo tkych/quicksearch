@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-10 09:20:49 tkych
+;;;; Last modified : 2013-08-14 19:40:33 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -36,10 +36,10 @@
 
 (defun map-reduce (reducer mapper sequence)
   "
-MAP-REDUCE is suitable for only the case that MAPPER's cost is much expensive.
- (QUICKSEARCH uses this function for drakma:http-request)
-For each element in SEQUENCE (as an argument), MAPPER is computed with each thread,
-then the results are collected by REDUCER.
+MAP-REDUCE is suitable for only the case that `mapper''s cost is much
+expensive (e.g. QUICKSEARCH invokes DRAKMA:HTTP-REQUEST as `mapper').
+For each element in `sequence' (as an argument), `mapper' is computed it
+with each thread, then the results are collected by `reducer'.
 
 Examples: (inefficient but intuitive)
 
@@ -59,10 +59,12 @@ Examples: (inefficient but intuitive)
    => \"HAL\"
 
 Note:
-  * Use only for expensive computation.
-  * If MAPPER assigns a value for the same global variable, it will cause interleave.
-  * Strictly, this MAP-REDUCE is not the MapReduce,
-    but abstract model is the same if threads are equated with worker nodes.
+  * Use only for expensive computation (e.g. fetching a resource on the
+    web).
+  * If `mapper' assigns a value for the same global variable, it will
+    cause interleave.
+  * Strictly, this MAP-REDUCE is not the MapReduce, but abstract model
+    is the same if threads are equated with worker nodes.
 "
   (reduce reducer
           (map 'vector
@@ -96,9 +98,10 @@ Note:
           (software-type)
           (software-version)
           *quicksearch-webpage*)
-  "This value tells the server who is requested (i.e. User-Agent header value).
-If you are embedding quicksearch in a larger application, you should
-change the value of *user-agent* to your application name and URL.")
+  "This value tells the server who is requested (i.e. User-Agent header
+value). If you are embedding CL-Feed-Parser in a larger application, you
+should change the value of *USER-AGENT* to your application name and
+URL.")
 
 (defvar *threading?* t)
 (defparameter *description-print?* nil)
@@ -106,27 +109,37 @@ change the value of *user-agent* to your application name and URL.")
 (defparameter *cut-off* 50)
 (defparameter *print-search-results?* nil)
 
-(defun quicksearch (search-word
-                    &key (?web t) (?description nil) (?url nil) (?cut-off 50)
-                         (?quicklisp t) (?cliki t) (?github t) (?bitbucket t))
-  "Search for CL projects with SEARCH-WORD in Quicklisp, Cliki, GitHub and BitBucket.
-SEARCH-WORD must be a string, number or symbol (symbol will be automatically converted into downcase-string).
+(defun quicksearch (search-word &key (?web         t)
+                                     (?description nil)
+                                     (?url         nil)
+                                     (?cut-off     50)
+                                     (?quicklisp   t)
+                                     (?cliki       t)
+                                     (?github      t)
+                                     (?bitbucket   t))
+
+  "Search for CL projects with `search-word' in Quicklisp, Cliki, GitHub
+and BitBucket. `search-word' must be a string, number or symbol (symbol
+will be automatically converted into downcase-string).
 
 Keywords:
- * If ?WEB is NIL, it does not search in Cliki, GitHub and BitBucket.
- * If ?QUICKLISP is NIL, it does not search in Quicklisp (also ?CLIKI, ?GITHUB, ?BITBUCKET).
+ * If `?web' is NIL, it does not search in Cliki, GitHub and BitBucket.
+ * If `?quicklisp' is NIL, it does not search in Quicklisp (also
+   `?cliki', `?github', `?bitbucket').
  * At least one search-space must be specified.
- * If ?DESCRIPTION is T, it displays project's descriptions (except for Quicklisp-search).
- * If ?URL is T, it display project's url.
- * ?CUT-OFF is the max number of printing repositories each space.
+ * If `?description' is T, it displays project's descriptions (except
+   for Quicklisp-search).
+ * If `?url' is T, it display project's url.
+ * `?cut-off' is the max number of printing repositories each space.
 
 Note:
- * keyword ?CUT-OFF controls only printing results,
-   nothing to do with the maximum number of fetching repositories (c.f. function CONFIG documentation).
+ * keyword `?cut-off' controls only printing results, nothing to do with
+   the maximum number of fetching repositories (c.f. function CONFIG
+   documentation).
 
- * About #\\Space in SEARCH-WORD:
-   In case search-word contains #\\Space, Quicklisp-search is OR-search,
-   whereas Cliki-search, GitHub-, BitBucket- is AND-search.
+ * About #\\Space in `search-word':
+   In case `search-word' contains #\\Space, Quicklisp-search is
+   OR-search, whereas Cliki-search, GitHub-, BitBucket- is AND-search.
    e.g. (quicksearch \"foo bar\")
         Quicklisp-search for \"foo\" OR \"bar\",
         Cliki-search, GitHub-, BitBucket- for \"foo\" AND \"bar\"."
@@ -155,7 +168,8 @@ Note:
     (when (and ?web *threading?* bordeaux-threads:*supports-threads-p*)
       ;; MAP Phase:
       ;; (Strictly, the following is not the MapReduce,
-      ;;  but abstract model is the same if threads are equated with worker nodes.)
+      ;;  but abstract model is the same if threads are equated with
+      ;;  worker nodes.)
       (let ((drakma:*drakma-default-external-format* :utf-8))
         ;; (print 'threading) ;for DBG
         (loop :for space   :in '(cliki github bitbucket)
@@ -198,7 +212,8 @@ Note:
              :for search? :in (list ?cliki ?github ?bitbucket) :do
              (when search?
                ;; (print 'non-threading) ;for DBG
-               (multiple-value-bind (repos stored?) (search-cache word space)
+               (multiple-value-bind
+                     (repos stored?) (search-cache word space)
                  (if stored?
                      (progn
                        (once-only-print-search-results word)
@@ -299,7 +314,9 @@ Note:
     ;; Don't exchange the following conditional-clause
     ;; (ql:where-is-system (ql-dist:name sys)).
     ;; ql:where-is-system contains asdf:find-system, and
-    ;; (asdf:find-system "asdf-encodings") causes disaster.
+    ;; (asdf:find-system "asdf-encodings") might reload asdf.
+    ;; Added: 2013-08-12 by tkych
+    ;; This is not a problem if asdf is the latest version.
     (aif (nth-value 2 (asdf:locate-system (ql-dist:name sys)))
          (str (directory-namestring it)
               #.(format nil "~%      ")
@@ -319,12 +336,13 @@ Note:
 ;; Search-Cache
 ;;--------------------------------------------------------------------
 ;; <cache> ::= <hashtable> stored previous search results.
-;;             For non-lock threads, each space has its own cache
-;;             in symbol-plist.
+;;             For non-lock threads, each space has its own cache in
+;;             symbol-plist.
 ;;             max-size = *cache-size* + 1
 ;;             [key, val] = {[<word>, <repos>] | [:history, <history>]}
 ;; <histroy> ::= (<word>*), max-length = *cache-size*, using as queue.
-;;               The front one is the most old, last one is the most new.
+;;               The front one is the most old, last one is the most
+;;               new.
 
 (defparameter *cache-size* 4)
 
@@ -631,50 +649,58 @@ Note:
 ;; Configuration for Quicksearch
 ;;--------------------------------------------------------------------
 
-(defun config (&key ((:maximum-columns-of-description max-cols)
-                     80  max-cols-supplied?)
+(defun config (&key
+                 ((:maximum-columns-of-description max-cols)
+                  80  max-cols-supplied?)
                  ((:maximum-number-of-fetching-repositories max-repos)
                   50  max-repos-supplied?)
                  (cache-size         4   cache-size-supplied?)
                  (clear-cache?       nil clear-cache-supplied?)
                  (threading?         t   threading-supplied?)
                  (quicklisp-verbose? nil quicklisp-verbose-supplied?))
+
   "Function CONFIG customizes printing, fetching or caching.
 If CONFIG is called with no keyword, then it sets default values.
 
 Keywords:
- * :MAXIMUM-COLUMNS-OF-DESCRIPTION (default 80)
+
+ * `:maximum-columns-of-description' (default 80)
    The value must be a plus integer bigger than 5.
    If the length of description-string is bigger than this value,
    then output of description is inserted newline for easy to see.
 
- * :MAXIMUM-NUMBER-OF-FETCHING-REPOSITORIES (default 50)
+ * `:maximum-number-of-fetching-repositories' (default 50)
    This value controls the number of fetching repositories.
    The value must be a plus integer.
-   Increasing this value, the number of fetching repositories increases, but also space & time does.
+   Increasing this value, the number of fetching repositories increases,
+   but also space & time does.
 
- * :CACHE-SIZE
+ * `:cache-size'
    The value must be a plus integer (default 4).
    This value is the number of stored previous search-results.
-   Increasing this value, the number of caching results increases, but also space does.
+   Increasing this value, the number of caching results increases, but
+   also space does.
 
- * :CLEAR-CACHE?
+ * `:clear-cache?'
    The value must be a boolean (default NIL).
    If value is T, then clear all caches.
 
- * :THREADING?
+ * `:threading?'
    The value must be a boolean (default T).
-   If value is NIL, then QUICKSEARCH becomes not to use threads for searching.
+   If value is NIL, then QUICKSEARCH becomes not to use threads for
+   searching.
 
    Note:
-     Currently on SBCL (1.1.8), threads are part of the default build on x86[-64] Linux only.
-     Other platforms (x86[-64] Darwin (Mac OS X), x86[-64] FreeBSD, x86 SunOS (Solaris),
-     and PPC Linux) experimentally supports threads and must be explicitly enabled at build-time.
-     For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
+     Currently on SBCL (1.1.8), threads are part of the default build on
+     x86[-64] Linux only. Other platforms (x86[-64] Darwin (Mac OS X),
+     x86[-64] FreeBSD, x86 SunOS (Solaris), and PPC Linux)
+     experimentally supports threads and must be explicitly enabled at
+     build-time. For more details, please see [SBCL manual](http://www.sbcl.org/manual/index.html#Threading).
 
- * :QUICKLISP-VERBOSE?
+ * `:quicklisp-verbose?'
    The value must be a boolean (default NIL).
-   If value is T, then outputs version of quicklisp and whether library had installed your local.
+   If value is T, then outputs version of quicklisp and whether library
+   had installed your local.
 
    Example:
      CL-REPL> (qs:config :QUICKLISP-VERBOSE? t)
@@ -692,7 +718,8 @@ Keywords:
 
 Note:
  * If you would prefer permanent configuration,
-   for example, add codes something like the following in the CL init file.
+   for example, add codes something like the following in the CL init
+   file.
 
    In `.sbclrc` for SBCL, `ccl-init.lisp` for CCL:
 
@@ -702,6 +729,7 @@ Note:
               :cache-size 10
               :threading? nil
               :quicklisp-verbose? t)"
+
   (let ((result nil))
     (if (not (or max-cols-supplied?  max-repos-supplied?
                  cache-size-supplied? clear-cache-supplied?
@@ -772,9 +800,11 @@ Note:
 ;;--------------------------------------------------------------------
 
 (defun ? (search-word &rest options)
+
   "? is abbreviation wrapper for function QUICKSEARCH.
-SEARCH-WORD must be a string, number or symbol.
-OPTIONS must be a non-negative integer (as Cut-Off) and/or some keywords which consists of some Option-Chars.
+`search-word' must be a string, number or symbol. `options' must be a
+non-negative integer (as Cut-Off) and/or some keywords which consists of
+some Option-Chars.
 
 Options:
  * Cut-Off:
@@ -789,11 +819,15 @@ Options:
 
 Note:
  * Option-Char is idempotent (e.g. :dd <=> :d).
- * If OPTIONS contains more than 2 Cut-Offs, only last one is applyed.
- * The order of Option-Chars is nothing to do with output. (e.g. :du <=> :ud)
- * The order of OPTIONS is nothing to do with output (except for some Cut-Offs).
- * If no search-space is specified, all spaces are specified (e.g. :d <=> :dqcgb)
- * If at most one search-space is specified, then others are not specified.
+ * If `options' contains more than 2 Cut-Offs, only last one is applyed.
+ * The order of Option-Chars is nothing to do with output
+   (e.g. :du <=> :ud).
+ * The order of `options' is nothing to do with output
+   (except for some Cut-Offs).
+ * If no search-space is specified, all spaces are specified
+   (e.g. :d <=> :dqcgb).
+ * If at most one search-space is specified, then others are not
+   specified.
 
 Examples:
   (? \"crypt\")
@@ -810,6 +844,7 @@ Examples:
   <=>
   (quicksearch \"crypt\" :?description T :?url nil :?cut-off 20
                        :?quicklisp nil :?cliki nil :?github T :?bitbucket nil)"
+
   (let ((cut-off 50)
         (d nil) (u nil) (q nil) (c nil) (g nil) (b nil))
     (dolist (opt options)
@@ -826,7 +861,8 @@ Examples:
             ((and (integerp opt) (not (minusp opt)))
              (setf cut-off opt))
             (t
-             (error "~S is neither keyword nor non-negative-integer." opt))))
+             (error "~S is neither keyword nor non-negative-integer."
+                    opt))))
     (if (or q c g b)
         (quicksearch search-word
                      :?description d :?url u :?cut-off cut-off
