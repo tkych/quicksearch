@@ -1,6 +1,6 @@
-Last modified : 2013-08-08 19:52:26 tkych
+Last modified : 2013-08-17 09:41:54 tkych
 
-Version: 0.01.02 (beta)
+Version: 0.01.03 (beta)
 
 
 Quicksearch
@@ -95,6 +95,7 @@ Examples
      Quicklisp
      ---------
       crypt
+          http://quickdocs.org/cl-crypt/
 
      Cliki
      -----
@@ -123,7 +124,7 @@ Examples
     T
 
  * A symbol (as search-word) is automatically converted into a downcase-string.
- * If option `:d` is on, then the description of the project is printed (except for Quicklisp-search).
+ * If option `:d` is on, then the description of the project is printed (QuickDocs-url for Quicklisp-search).
  * The function QUICKSEARCH's options are redundant, but explanatory.
  * The function ?'s options are not explanatory, but minimum.
 
@@ -221,7 +222,7 @@ _search-word_ must be a string, number or symbol (symbol will be automatically c
  * If _?web_ is NIL, it does not search in Cliki, GitHub and BitBucket.
  * If _?quicklisp_ is NIL, it does not search in Quicklisp (also _?cliki_, _?github_, _?bitbucket_).
  * At least one search-space must be specified.
- * If _?description_ is T, it displays project's descriptions (except for Quicklisp-search).
+ * If _?description_ is T, it displays project's descriptions (QuickDocs-url for Quicklisp-search).
  * If _?url_ is T, it display project's url.
  * _?cut-off_ is the max number of printing repositories each space.
 
@@ -273,7 +274,7 @@ _options_ must be a non-negative integer (as Cut-Off) and/or some keywords which
    * The max number of printing results (default is 50).
 
  * Option-Chars:
-   * d, D -- output Description
+   * d, D -- output Description (or QuickDocs-url for Quicklisp-search)
    * u, U -- output URL
    * q, Q -- search in Quicklisp
    * c, C -- search in Cliki

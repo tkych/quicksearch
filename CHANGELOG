@@ -1,9 +1,13 @@
-Last modified : 2013-08-10 22:35:15 tkych
+Last modified : 2013-08-17 09:44:12 tkych
 
 
 ======================================================================
  Change Log for Quicksearch
 ======================================================================
+
+Version 0.1.03 (beta)
+2013-08-17
+Added  : QuickDocs url for Quicklisp-serch reslut's description.
 
 Version 0.1.02 (beta)
 2013-08-08
