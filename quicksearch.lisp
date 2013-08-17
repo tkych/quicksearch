@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-14 19:40:33 tkych
+;;;; Last modified : 2013-08-17 09:36:15 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -291,19 +291,20 @@ Note:
        :when (or (search word (ql-dist:name sys))
                  (search word (ql-dist:name (ql-dist:release sys))))
        :collect (list (get-title sys)
-                      (when *url-print?* (get-url sys))
-                      nil)            ;(ql-dist:short-description sys)
-                                      ; <=> (ql-dist:name sys)
+                      (when *url-print?*
+                        (get-url sys))
+                      (when *description-print?*
+                        (get-quickdocs-url sys)))
        :into results
        :finally (progn
                   (when *quicklisp-verbose?* (set-version sys))
                   (return results))))
-  
+
   (defun get-title (sys)
     (if (and *quicklisp-verbose?* (installed-p sys))
         (str *installed-prefix* (ql-dist:name sys))
         (ql-dist:name sys)))
-
+  
   (defun installed-p (sys)
     (handler-case (not (ql-dist:check-local-archive-file
                         (ql-dist:release sys)))
@@ -328,6 +329,12 @@ Note:
   (defun set-version (sys)
     (setf (get 'quicklisp :name)
           (str "Quicklisp: " (ql-dist:version (ql-dist:dist sys)))))
+
+  (defun get-quickdocs-url (sys)
+    (ppcre:register-groups-bind (project-name)
+        ("^.*/(.*)-20.*$" (slot-value (ql-dist:release sys)
+                                      'ql-dist::archive-url))
+      (format nil "http://quickdocs.org/~A/" project-name)))
 
   )  ;end of #+quicklisp
 
