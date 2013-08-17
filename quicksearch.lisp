@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-17 13:57:16 tkych
+;;;; Last modified : 2013-08-17 14:03:05 tkych
 
 ;; quicksearch/quicksearch.lisp
 
