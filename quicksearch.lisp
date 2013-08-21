@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-17 14:03:05 tkych
+;;;; Last modified : 2013-08-21 21:32:34 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -86,7 +86,7 @@ Note:
 ;; <url>   ::= <string>
 ;; <description> ::= {<string> | NIL}
 
-(defparameter *quicksearch-version* "0.1.02")
+(defparameter *quicksearch-version* "0.1.03")
 (defparameter *quicksearch-webpage*
   "https://github.com/tkych/quicksearch")
 
@@ -332,7 +332,7 @@ Note:
   
   (defun get-quickdocs-url (sys)
     (format nil "http://quickdocs.org/~A/"
-            (slot-value (ql-dist:release sys) 'ql-dist:project-name)))
+            (ql-dist:name (ql-dist:release sys))))
 
   )  ;end of #+quicklisp
 
