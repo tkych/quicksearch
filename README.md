@@ -1,4 +1,4 @@
-Last modified : 2013-08-17 09:41:54 tkych
+Last modified: 2013-10-21 19:50:09 tkych
 
 Version: 0.01.03 (beta)
 
@@ -32,6 +32,11 @@ Depends-on
 
 Installation
 ------------
+
+#### cl-test-grid results:
+
+ - http://common-lisp.net/project/cl-test-grid/library/quicksearch.html
+
 
 ##### Auto:
 
