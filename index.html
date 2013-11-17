@@ -37,27 +37,27 @@ If you want a library about "foo", just type <code>(qs:? 'foo)</code> at REPL.</
 <h2>
 <a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
 
-<ol>
-<li>CL-REPL&gt; <code>(ql:quickload :quicksearch)</code>
-</li>
-</ol><h2>
+<pre><code>CL-REPL&gt; (ql:quickload :quicksearch)
+</code></pre>
+
+<h2>
 <a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
 
 <pre><code>CL-REPL&gt; (qs:? &lt;word&gt; [&lt;option&gt;])
 
-  &lt;word&gt;    = &lt;symbol&gt; | &lt;string&gt;
-  &lt;option&gt;  = &lt;opt-num&gt; | &lt;opt-key&gt; | &lt;option&gt;
+  &lt;word&gt;    ::= &lt;symbol&gt; | &lt;string&gt;
+  &lt;option&gt;  ::= &lt;opt-num&gt; | &lt;opt-key&gt; | &lt;option&gt;
 
-  &lt;opt-num&gt; = &lt;integer&gt;
-            ~ The max number of printing results.
+  &lt;opt-num&gt; ::= &lt;integer&gt;
+              ~ The max number of printing results.
 
-  &lt;opt-key&gt; = :[ d | u | q | c | g | b ]+
-            ~ d -- output Description (or QuickDocs-url for Quicklisp-search)
-              u -- output URL
-              q -- search in Quicklisp
-              c -- search in Cliki
-              g -- search in GitHub
-              b -- search in Bitbucket
+  &lt;opt-key&gt; ::= :[ d | u | q | c | g | b ]+
+              ~ d -- output Description (or QuickDocs-url for Quicklisp-search)
+                u -- output URL
+                q -- search in Quicklisp
+                c -- search in Cliki
+                g -- search in GitHub
+                b -- search in Bitbucket
 </code></pre>
 
 <h2>
