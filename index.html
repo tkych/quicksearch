@@ -51,7 +51,7 @@ If you want to find a library about "foo", just type <code>(qs:? 'foo)</code> at
   &lt;opt-num&gt; ::= &lt;integer&gt;
               ~ The max number of printing results.
 
-  &lt;opt-key&gt; ::= :[ d | u | q | c | g | b ]+
+  &lt;opt-key&gt; ::= :{ d | u | q | c | g | b }+
               ~ d -- output Description (or QuickDocs-url for Quicklisp-search)
                 u -- output URL
                 q -- search in Quicklisp
