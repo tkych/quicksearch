@@ -87,8 +87,7 @@ Note:
 ;; <description> ::= {<string> | NIL}
 
 (defparameter *quicksearch-version* "0.1.03")
-(defparameter *quicksearch-webpage*
-  "https://github.com/tkych/quicksearch")
+(defparameter *quicksearch-webpage* "http://tkych.github.io/quicksearch/")
 
 (defparameter *user-agent*
   (format nil "Quicksearch/~A (~A ~A; ~A; ~A; ~A)"
