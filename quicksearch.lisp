@@ -98,7 +98,7 @@ Note:
           (software-version)
           *quicksearch-webpage*)
   "This value tells the server who is requested (i.e. User-Agent header
-value). If you are embedding CL-Feed-Parser in a larger application, you
+value). If you are embedding Quicksearch in a larger application, you
 should change the value of *USER-AGENT* to your application name and
 URL.")
 
