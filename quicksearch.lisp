@@ -1,4 +1,4 @@
-;;;; Last modified : 2013-08-21 21:32:34 tkych
+;;;; Last modified: 2014-04-13 12:04:35 tkych
 
 ;; quicksearch/quicksearch.lisp
 
@@ -133,7 +133,7 @@ Keywords:
 
 Note:
  * keyword `?cut-off' controls only printing results, nothing to do with
-   the maximum number of fetching repositories (c.f. function CONFIG
+   the maximum number of fetching repositories (see. function CONFIG
    documentation).
 
  * About #\\Space in `search-word':
@@ -445,6 +445,7 @@ Note:
 
 ;;--------------------------------------
 ;; dispatch for extract repositories
+
 (defun extract-repos (response space)
   (case space
     (cliki     (extract-cliki-repos response))
@@ -471,10 +472,25 @@ Note:
                              (let ((desc (strip (remove-tags description))))
                                (when (string/= "" desc) desc)))))))))
 
+;; Memo: 2014-04-13 by tkych
+;;  Adding `response-string' is to fix the bug which is caused that a string
+;;  is given to `octets-to-string'. This bug was found and fixed by g000001,
+;;  thanks!
+;;  c.f. http://g000001.cddddr.org/3606044400
+(defun response-string (response)
+  #+#:Error-2014-04-08
+  ;; This sequence can't be decoded using UTF-8 as it is too short.
+  ;;  2 octets missing at the end.
+  (flexi-streams:octets-to-string response :external-format :utf-8)
+  #-#:Error-2014-04-08
+  (etypecase response
+    (STRING response)
+    (VECTOR 
+     (flexi-streams:octets-to-string response :external-format :utf-8))))
+
 ;; github api-v3 search
 (defun extract-github-repos (response)
-  (let* ((jason (yason:parse (flexi-streams:octets-to-string
-                              response :external-format :utf-8))))
+  (let* ((jason (yason:parse (response-string response))))
     (loop :for repo :in (gethash "repositories" jason)
           :unless (gethash "fork" repo)   ;only master is displayed
           :collect (list (gethash "name" repo)

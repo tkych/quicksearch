@@ -1,6 +1,6 @@
-Last modified: 2013-10-21 19:50:09 tkych
+Last modified: 2014-04-13 12:00:30 tkych
 
-Version: 0.01.03 (beta)
+Version: 0.01.04 (beta)
 
 
 Quicksearch
@@ -236,7 +236,7 @@ _search-word_ must be a string, number or symbol (symbol will be automatically c
 
  * _?cut-off_ controls only printing results,
    nothing to do with the max number of fetching repositories.
-   c.f. function CONFIG documentation
+   see. function CONFIG documentation
 
  * About #\Space in _search-word_:
 

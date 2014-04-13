@@ -1,9 +1,14 @@
-Last modified : 2013-08-17 09:44:12 tkych
-
+Last modified: 2014-04-13 12:04:58 tkych
 
 ======================================================================
  Change Log for Quicksearch
 ======================================================================
+
+Version 0.1.04 (beta)
+2014-04-13
+Fix Bug : A string is given to `flexi-streams:octets-to-string'.
+          This bug was found and fixed by g000001, thanks!
+          c.f. http://g000001.cddddr.org/3606044400
 
 Version 0.1.03 (beta)
 2013-08-17
